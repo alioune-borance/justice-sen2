@@ -121,14 +121,14 @@ export const Dashboard: React.FC = () => {
           trendValue="+2.5%"
         />
         <StatsCard 
-          title="Prisons actives" 
-          value="188" 
+          title="Taux d'occupation de la prison" 
+          value="130%" 
           icon={Building}
           trend="stable"
         />
         <StatsCard 
-          title="Visites aujourd'hui" 
-          value="1,247" 
+          title="Visites de la semaine" 
+          value="500" 
           icon={Calendar}
           trend="down"
           trendValue="-8.2%"
@@ -144,7 +144,6 @@ export const Dashboard: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CrimeChart />
-        <RecidivismChart />
       </div>
       
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">

@@ -51,7 +51,7 @@ function App() {
     
     switch (currentPage) {
       case 'dashboard':
-        return 'Tableau de bord';
+        return 'Tableau de bord de la prison';
       case 'inmates':
         return 'Gestion des détenus';
       case 'visits':
