@@ -10,6 +10,7 @@ import { SecurityDashboard } from './components/SecurityDashboard';
 import { ReinsertionManagement } from './components/ReinsertionManagement';
 import { Users } from './components/Users';
 import { Settings } from './components/Settings';
+import { GenericDashboard } from './components/GenericDashboard';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -23,6 +24,8 @@ function App() {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard />;
+      case 'genericDashboard':
+        return <GenericDashboard />;
       case 'inmates':
         return <InmateList onViewDetail={setSelectedInmate} />;
       case 'visits':
@@ -52,6 +55,8 @@ function App() {
     switch (currentPage) {
       case 'dashboard':
         return 'Tableau de bord de la prison';
+      case 'genericDashboard':
+        return 'Tableau de bord générique';
       case 'inmates':
         return 'Gestion des détenus';
       case 'visits':
