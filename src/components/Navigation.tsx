@@ -18,6 +18,7 @@ interface NavigationProps {
 }
 
 const menuItems = [
+  { id: 'genericDashboard', label: 'Tableau de bord générique', icon: PieChart},
   { id: 'dashboard', label: 'Tableau de bord', icon: Home },
   { id: 'inmates', label: 'Détenus', icon: Users },
   { id: 'visits', label: 'Visites', icon: Calendar },
