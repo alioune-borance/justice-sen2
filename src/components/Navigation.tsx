@@ -25,6 +25,7 @@ const menuItems = [
   { id: 'pardons', label: 'Demandes de grâce', icon: UserCheck },
   { id: 'reinsertion', label: 'Réinsertion', icon: GraduationCap },
   { id: 'transfers', label: 'Sorties & Transferts', icon: ArrowRightLeft },
+  { id: 'reports', label: 'Rapports', icon: PieChart },
   { id: 'security', label: 'Sécurité & Analytique', icon: Shield },
   { id: 'users', label: 'Utilisateurs', icon: Users },
   { id: 'settings', label: 'Paramètres', icon: Settings }
