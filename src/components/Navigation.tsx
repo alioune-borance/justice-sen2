@@ -7,6 +7,7 @@ import {
   Shield, 
   UserCheck,
   GraduationCap,
+  ArrowRightLeft,
   Settings,
   Home
 } from 'lucide-react';
@@ -23,6 +24,7 @@ const menuItems = [
   { id: 'statistics', label: 'Statistiques', icon: BarChart3 },
   { id: 'pardons', label: 'Demandes de grâce', icon: UserCheck },
   { id: 'reinsertion', label: 'Réinsertion', icon: GraduationCap },
+  { id: 'transfers', label: 'Sorties & Transferts', icon: ArrowRightLeft },
   { id: 'security', label: 'Sécurité & Analytique', icon: Shield },
   { id: 'users', label: 'Utilisateurs', icon: Users },
   { id: 'settings', label: 'Paramètres', icon: Settings }
