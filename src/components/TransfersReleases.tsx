@@ -1,26 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  ArrowRightLeft, 
-  LogOut, 
-  Calendar, 
-  Search, 
-  Filter, 
-  Plus,
-  User,
-  MapPin,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  FileText,
-  Truck,
-  Building,
-  Phone,
-  Mail,
-  Eye,
-  Edit,
-  MoreVertical
-} from 'lucide-react';
+import { ArrowRightLeft, LogOut, Calendar, Search, Filter, Plus, User, MapPin, Clock, CheckCircle, XCircle, AlertTriangle, FileText, Truck, Building, Phone, Mail, Eye, CreditCard as Edit, MoreVertical } from 'lucide-react';
 
 interface Transfer {
   id: number;
