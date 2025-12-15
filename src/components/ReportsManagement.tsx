@@ -1,29 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  Download, 
-  Calendar, 
-  Filter, 
-  Search, 
-  Plus,
-  BarChart3,
-  Users,
-  Building,
-  Shield,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Eye,
-  Edit,
-  Trash2,
-  Send,
-  Settings,
-  PieChart,
-  TrendingUp,
-  FileSpreadsheet,
-  FilePdf,
-  Printer
-} from 'lucide-react';
+import { FileText, Download, Calendar, Filter, Search, Plus, BarChart3, Users, Building, Shield, Clock, CheckCircle, AlertTriangle, Eye, CreditCard as Edit, Trash2, Send, Settings, PieChart, TrendingUp, FileSpreadsheet, File as FilePdf, Printer } from 'lucide-react';
 
 interface Report {
   id: number;
