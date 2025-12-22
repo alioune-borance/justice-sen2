@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { Layout } from './components/Layout';
-import { Dashboard } from './components/Dashboard';
-import { InmateList } from './components/InmateList';
-import { InmateDetail } from './components/InmateDetail';
-import { VisitManagement } from './components/VisitManagement';
-import { Statistics } from './components/Statistics';
-import { PresidentialPardons } from './components/PresidentialPardons';
-import { SecurityDashboard } from './components/SecurityDashboard';
-import { ReinsertionManagement } from './components/ReinsertionManagement';
-import { Users } from './components/Users';
-import { Settings } from './components/Settings';
-import { GenericDashboard } from './components/GenericDashboard';
+import { Layout } from '../components/Layout';
+import { Dashboard } from '../components/Dashboard';
+import { InmateList } from '../components/InmateList';
+import { InmateDetail } from '../components/InmateDetail';
+import { VisitManagement } from '../components/VisitManagement';
+import { Statistics } from '../components/Statistics';
+import { PresidentialPardons } from '../components/PresidentialPardons';
+import { SecurityDashboard } from '../components/SecurityDashboard';
+import { ReinsertionManagement } from '../components/ReinsertionManagement';
+import { Users } from '../components/Users';
+import { Settings } from '../components/Settings';
+import { GenericDashboard } from '../components/GenericDashboard';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
