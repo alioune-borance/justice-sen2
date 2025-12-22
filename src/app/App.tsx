@@ -8,8 +8,11 @@ import { Statistics } from '../components/Statistics';
 import { PresidentialPardons } from '../components/PresidentialPardons';
 import { SecurityDashboard } from '../components/SecurityDashboard';
 import { ReinsertionManagement } from '../components/ReinsertionManagement';
+<<<<<<< HEAD
 import { TransfersReleases } from '../components/TransfersReleases';
 import { ReportsManagement } from '../components/ReportsManagement';
+=======
+>>>>>>> ef66ba8 (added new file structure)
 import { Users } from '../components/Users';
 import { Settings } from '../components/Settings';
 import { GenericDashboard } from '../components/GenericDashboard';
