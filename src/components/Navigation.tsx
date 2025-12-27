@@ -7,7 +7,6 @@ import {
   Shield, 
   UserCheck,
   GraduationCap,
-  ArrowRightLeft,
   Settings,
   Home,
   ArrowRightLeft
