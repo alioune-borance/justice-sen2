@@ -8,6 +8,8 @@ import { Statistics } from './components/Statistics';
 import { PresidentialPardons } from './components/PresidentialPardons';
 import { SecurityDashboard } from './components/SecurityDashboard';
 import { ReinsertionManagement } from './components/ReinsertionManagement';
+import { TransfersReleases } from './components/TransfersReleases';
+import { ReportsManagement } from './components/ReportsManagement';
 import { Users } from './components/Users';
 import { Settings } from './components/Settings';
 import { Transfers } from './components/Transfers';
@@ -36,6 +38,10 @@ function App() {
         return <PresidentialPardons />;
       case 'reinsertion':
         return <ReinsertionManagement />;
+      case 'transfers':
+        return <TransfersReleases />;
+      case 'reports':
+        return <ReportsManagement />;
       case 'security':
         return <SecurityDashboard />;
       case 'users':
@@ -67,6 +73,10 @@ function App() {
         return 'Demandes de grâce';
       case 'reinsertion':
         return 'Gestion de la réinsertion';
+      case 'transfers':
+        return 'Gestion des sorties et transferts';
+      case 'reports':
+        return 'Gestion des rapports';
       case 'security':
         return 'Sécurité & Analytique';
       case 'users':
