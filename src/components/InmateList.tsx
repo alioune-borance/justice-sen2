@@ -48,6 +48,10 @@ export const InmateList: React.FC<InmateListProps> = ({ onViewDetail }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [prisonFilter, setPrisonFilter] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const [selectedInmate, setSelectedInmate] = useState<any | null>(null);
 
   const filteredInmates = inmates.filter(inmate => {
     const matchesSearch = inmate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,7 +76,8 @@ export const InmateList: React.FC<InmateListProps> = ({ onViewDetail }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Gestion des détenus</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <button onClick={() => setIsModalOpen(true)}
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
           Nouveau détenu
         </button>
       </div>
@@ -176,7 +181,11 @@ export const InmateList: React.FC<InmateListProps> = ({ onViewDetail }) => {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button className="p-1 text-gray-600 hover:text-gray-800" title="Modifier">
-                        <Edit className="h-4 w-4" />
+                        <Edit onClick={() => {
+                              setSelectedInmate(inmate);
+                              setIsEditModalOpen(true);
+                            }}
+                        className="h-4 w-4" />
                       </button>
                       <button className="p-1 text-gray-600 hover:text-gray-800" title="Plus d'options">
                         <MoreVertical className="h-4 w-4" />
@@ -227,6 +236,159 @@ export const InmateList: React.FC<InmateListProps> = ({ onViewDetail }) => {
           <p className="text-sm text-gray-600">Ce mois-ci</p>
         </div>
       </div>
-    </div>
+
+      {isModalOpen && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl p-6 relative">
+
+          {/* Bouton fermer */}
+          <button
+            onClick={() => setIsModalOpen(false)}
+            className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+          >
+            ×
+          </button>
+
+          <h2 className="text-xl font-bold mb-4">Ajouter un nouveau détenu</h2>
+
+              {/* Formulaire Ajout détenu*/}
+              <form className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nom</label>
+                  <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">N° Écrou</label>
+                  <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Crime</label>
+                  <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Peine</label>
+                  <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Établissement</label>
+                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="">Choisir...</option>
+                    <option value="Fresnes">Fresnes</option>
+                    <option value="Marseille">Marseille</option>
+                    <option value="Lyon">Lyon</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {isEditModalOpen && selectedInmate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl p-6 relative">
+
+            {/* Bouton fermer */}
+            <button
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+
+            <h2 className="text-xl font-bold mb-4">Modifier un détenu</h2>
+
+            {/* Formulaire pré-rempli */}
+            <form className="space-y-4">
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nom</label>
+                <input
+                  type="text"
+                  defaultValue={selectedInmate.name}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">N° Écrou</label>
+                <input
+                  type="text"
+                  defaultValue={selectedInmate.number}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Crime</label>
+                <input
+                  type="text"
+                  defaultValue={selectedInmate.crime}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Peine</label>
+                <input
+                  type="text"
+                  defaultValue={selectedInmate.sentence}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Établissement</label>
+                <select
+                  defaultValue={selectedInmate.prison}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="Fresnes">Fresnes</option>
+                  <option value="Marseille">Marseille</option>
+                  <option value="Lyon">Lyon</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Statut</label>
+                <select
+                  defaultValue={selectedInmate.status}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="Condamné">Condamné</option>
+                  <option value="Prévenu">Prévenu</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Enregistrer les modifications
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+)}
+
+
+        </div>
+
+        
   );
 };

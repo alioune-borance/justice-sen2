@@ -10,6 +10,7 @@ import { SecurityDashboard } from './components/SecurityDashboard';
 import { ReinsertionManagement } from './components/ReinsertionManagement';
 import { Users } from './components/Users';
 import { Settings } from './components/Settings';
+import { Transfers } from './components/Transfers';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -27,6 +28,8 @@ function App() {
         return <InmateList onViewDetail={setSelectedInmate} />;
       case 'visits':
         return <VisitManagement />;
+      case 'transfers':
+        return <Transfers />
       case 'statistics':
         return <Statistics />;
       case 'pardons':
@@ -56,6 +59,8 @@ function App() {
         return 'Gestion des détenus';
       case 'visits':
         return 'Gestion des visites';
+      case 'transfers':
+        return 'Gestion transfert/sortie';
       case 'statistics':
         return 'Statistiques';
       case 'pardons':
@@ -69,7 +74,7 @@ function App() {
       case 'settings':
         return 'Paramètres';
       default:
-        return 'Tableau de bord';
+        return 'Tableau de bord de la prison';
     }
   };
 

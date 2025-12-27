@@ -8,7 +8,8 @@ import {
   UserCheck,
   GraduationCap,
   Settings,
-  Home
+  Home,
+  ArrowRightLeft
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -17,9 +18,10 @@ interface NavigationProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Tableau de bord', icon: Home },
+  { id: 'dashboard', label: 'Tableau de bord de la prison', icon: Home },
   { id: 'inmates', label: 'Détenus', icon: Users },
   { id: 'visits', label: 'Visites', icon: Calendar },
+  { id: 'transfers', label: 'Gestion transfert/sortie', icon: ArrowRightLeft },
   { id: 'statistics', label: 'Statistiques', icon: BarChart3 },
   { id: 'pardons', label: 'Demandes de grâce', icon: UserCheck },
   { id: 'reinsertion', label: 'Réinsertion', icon: GraduationCap },
