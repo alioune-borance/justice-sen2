@@ -118,13 +118,10 @@ export const ReportsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedReport, setSelectedReport] = useState<number | null>(null);
 
   const tabs = [
     { id: 'reports', label: 'Rapports', icon: FileText },
     { id: 'templates', label: 'Modèles', icon: Settings },
-    { id: 'scheduled', label: 'Planification', icon: Calendar },
-    { id: 'analytics', label: 'Analytique', icon: BarChart3 },
     { id: 'archive', label: 'Archives', icon: FileSpreadsheet }
   ];
 
@@ -379,228 +376,7 @@ export const ReportsManagement: React.FC = () => {
       </div>
     </div>
   );
-
-  const renderScheduledTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-800">Rapports planifiés</h3>
-        <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2">
-          <Calendar className="h-4 w-4" />
-          <span>Planifier rapport</span>
-        </button>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Rapport</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Fréquence</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Prochaine exécution</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Destinataires</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Statut</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {reports.filter(r => r.nextGeneration).map((report) => (
-              <tr key={report.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{report.title}</p>
-                    <p className="text-xs text-gray-500">{report.category}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-800">{report.frequency}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">{report.nextGeneration}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    {report.recipients.slice(0, 2).map((recipient, index) => (
-                      <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                        {recipient}
-                      </span>
-                    ))}
-                    {report.recipients.length > 2 && (
-                      <span className="text-xs text-gray-500">+{report.recipients.length - 2}</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(report.status)}`}>
-                    {report.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex space-x-2">
-                    <button className="p-1 text-blue-600 hover:text-blue-800">
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button className="p-1 text-gray-600 hover:text-gray-800">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button className="p-1 text-red-600 hover:text-red-800">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderAnalyticsTab = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-slate-800">Analytique des rapports</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Rapports générés</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">247</p>
-              <div className="flex items-center mt-2 text-green-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">+12%</span>
-              </div>
-            </div>
-            <div className="bg-blue-50 p-3 rounded-full">
-              <FileText className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Téléchargements</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">1,432</p>
-              <div className="flex items-center mt-2 text-green-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">+8%</span>
-              </div>
-            </div>
-            <div className="bg-green-50 p-3 rounded-full">
-              <Download className="h-8 w-8 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Rapports planifiés</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">18</p>
-              <div className="flex items-center mt-2 text-blue-600">
-                <Clock className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">Actifs</span>
-              </div>
-            </div>
-            <div className="bg-yellow-50 p-3 rounded-full">
-              <Calendar className="h-8 w-8 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Erreurs</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">3</p>
-              <div className="flex items-center mt-2 text-red-600">
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">À corriger</span>
-              </div>
-            </div>
-            <div className="bg-red-50 p-3 rounded-full">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <h4 className="text-lg font-semibold text-slate-800 mb-4">Rapports les plus générés</h4>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Population carcérale</span>
-              <div className="flex items-center space-x-2">
-                <div className="w-24 bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
-                </div>
-                <span className="text-sm font-medium">42</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Sécurité</span>
-              <div className="flex items-center space-x-2">
-                <div className="w-24 bg-gray-200 rounded-full h-2">
-                  <div className="bg-red-600 h-2 rounded-full" style={{ width: '70%' }}></div>
-                </div>
-                <span className="text-sm font-medium">35</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Réinsertion</span>
-              <div className="flex items-center space-x-2">
-                <div className="w-24 bg-gray-200 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: '60%' }}></div>
-                </div>
-                <span className="text-sm font-medium">28</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Financier</span>
-              <div className="flex items-center space-x-2">
-                <div className="w-24 bg-gray-200 rounded-full h-2">
-                  <div className="bg-yellow-600 h-2 rounded-full" style={{ width: '40%' }}></div>
-                </div>
-                <span className="text-sm font-medium">18</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <h4 className="text-lg font-semibold text-slate-800 mb-4">Formats préférés</h4>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FilePdf className="h-5 w-5 text-red-600" />
-                <span className="text-sm text-gray-700">PDF</span>
-              </div>
-              <span className="text-sm font-medium">65%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FileSpreadsheet className="h-5 w-5 text-green-600" />
-                <span className="text-sm text-gray-700">Excel</span>
-              </div>
-              <span className="text-sm font-medium">25%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <span className="text-sm text-gray-700">Word</span>
-              </div>
-              <span className="text-sm font-medium">7%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FileSpreadsheet className="h-5 w-5 text-blue-600" />
-                <span className="text-sm text-gray-700">CSV</span>
-              </div>
-              <span className="text-sm font-medium">3%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
+              
   const renderArchiveTab = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -635,10 +411,6 @@ export const ReportsManagement: React.FC = () => {
         return renderReportsTab();
       case 'templates':
         return renderTemplatesTab();
-      case 'scheduled':
-        return renderScheduledTab();
-      case 'analytics':
-        return renderAnalyticsTab();
       case 'archive':
         return renderArchiveTab();
       default:
@@ -663,10 +435,6 @@ export const ReportsManagement: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Total rapports</p>
               <p className="text-3xl font-bold text-slate-800 mt-2">247</p>
-              <div className="flex items-center mt-2 text-green-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">+12%</span>
-              </div>
             </div>
             <div className="bg-blue-50 p-3 rounded-full">
               <FileText className="h-8 w-8 text-blue-600" />
@@ -686,22 +454,6 @@ export const ReportsManagement: React.FC = () => {
             </div>
             <div className="bg-yellow-50 p-3 rounded-full">
               <Clock className="h-8 w-8 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Programmés</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">18</p>
-              <div className="flex items-center mt-2 text-purple-600">
-                <Calendar className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">Automatiques</span>
-              </div>
-            </div>
-            <div className="bg-purple-50 p-3 rounded-full">
-              <Calendar className="h-8 w-8 text-purple-600" />
             </div>
           </div>
         </div>
