@@ -18,7 +18,8 @@ interface NavigationProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Tableau de bord de la prison', icon: Home },
+  { id: 'genericDashboard', label: 'Tableau de bord générique', icon: PieChart},
+  { id: 'dashboard', label: 'Tableau de bord', icon: Home },
   { id: 'inmates', label: 'Détenus', icon: Users },
   { id: 'visits', label: 'Visites', icon: Calendar },
   { id: 'transfers', label: 'Gestion transfert/sortie', icon: ArrowRightLeft },

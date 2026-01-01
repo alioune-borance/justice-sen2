@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, User, Search, Filter, Check, X } from 'lucide-react';
+import type { Visits } from '../entities/Visits';
 
-const visits = [
+const visits : Visits[] = [
   {
     id: 1,
     date: '20/01/2024',

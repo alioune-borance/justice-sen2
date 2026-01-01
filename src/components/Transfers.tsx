@@ -1,34 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowRightLeft, LogOut, Calendar, Search, Filter, Plus, User, MapPin, Clock, CheckCircle, XCircle, AlertTriangle, FileText, Truck, Building, Phone, Mail, Eye, CreditCard as Edit, MoreVertical } from 'lucide-react';
-
-interface Transfer {
-  id: number;
-  inmateId: string;
-  inmateName: string;
-  fromPrison: string;
-  toPrison: string;
-  reason: string;
-  requestDate: string;
-  scheduledDate: string;
-  status: 'En attente' | 'Approuvé' | 'En cours' | 'Terminé' | 'Refusé';
-  priority: 'Normale' | 'Urgente' | 'Critique';
-  requestedBy: string;
-  transportType: 'Fourgon' | 'Escorte' | 'Ambulance';
-}
-
-interface Release {
-  id: number;
-  inmateId: string;
-  inmateName: string;
-  prison: string;
-  releaseType: 'Fin de peine' | 'Libération conditionnelle' | 'Grâce présidentielle' | 'Acquittement';
-  scheduledDate: string;
-  status: 'Programmée' | 'En cours' | 'Terminée' | 'Reportée';
-  conditions?: string[];
-  followUpRequired: boolean;
-  contactPerson?: string;
-  documents: string[];
-}
+import type { Transfer } from '../entities/Transfer';
+import type { Release } from '../entities/Release';
 
 const transfers: Transfer[] = [
   {

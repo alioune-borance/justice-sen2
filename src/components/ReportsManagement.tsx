@@ -1,33 +1,9 @@
 import React, { useState } from 'react';
 import { FileText, Download, Calendar, Filter, Search, Plus, BarChart3, Users, Building, Shield, Clock, CheckCircle, AlertTriangle, Eye, CreditCard as Edit, Trash2, Send, Settings, PieChart, TrendingUp, FileSpreadsheet, File as FilePdf, Printer } from 'lucide-react';
+import { Reports } from '../entities/Report';
+import { ReportTemplate } from '../entities/ReportTemplate';
 
-interface Report {
-  id: number;
-  title: string;
-  type: 'statistique' | 'operationnel' | 'securite' | 'reinsertion' | 'financier';
-  category: string;
-  description: string;
-  frequency: 'Ponctuel' | 'Quotidien' | 'Hebdomadaire' | 'Mensuel' | 'Trimestriel' | 'Annuel';
-  status: 'Brouillon' | 'Programmé' | 'En cours' | 'Terminé' | 'Erreur';
-  createdBy: string;
-  createdDate: string;
-  lastGenerated?: string;
-  nextGeneration?: string;
-  recipients: string[];
-  format: 'PDF' | 'Excel' | 'CSV' | 'Word';
-  size?: string;
-}
-
-interface ReportTemplate {
-  id: number;
-  name: string;
-  type: string;
-  description: string;
-  fields: string[];
-  isActive: boolean;
-}
-
-const reports: Report[] = [
+const reports: Reports[] = [
   {
     id: 1,
     title: 'Rapport mensuel de population carcérale',
