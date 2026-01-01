@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, User, Eye, Edit, MoreVertical } from 'lucide-react';
 
-const inmates = [
+const inmates: any[] = [
   {
     id: 1,
     name: 'Martin Dubois',

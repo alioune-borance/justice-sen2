@@ -4,7 +4,6 @@ import { Dashboard } from '../components/Dashboard';
 import { InmateList } from '../components/InmateList';
 import { InmateDetail } from '../components/InmateDetail';
 import { VisitManagement } from '../components/VisitManagement';
-import { Statistics } from '../components/Statistics';
 import { PresidentialPardons } from '../components/PresidentialPardons';
 import { SecurityDashboard } from '../components/SecurityDashboard';
 import { ReinsertionManagement } from '../components/ReinsertionManagement';
@@ -36,8 +35,6 @@ function App() {
         return <VisitManagement />;
       case 'transfers':
         return <Transfers />
-      case 'statistics':
-        return <Statistics />;
       case 'pardons':
         return <PresidentialPardons />;
       case 'reinsertion':
@@ -73,8 +70,6 @@ function App() {
         return 'Gestion des visites';
       case 'transfers':
         return 'Gestion transfert/sortie';
-      case 'statistics':
-        return 'Statistiques';
       case 'pardons':
         return 'Demandes de grâce';
       case 'reinsertion':

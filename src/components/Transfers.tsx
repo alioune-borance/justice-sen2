@@ -1,34 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowRightLeft, LogOut, Calendar, Search, Filter, Plus, User, MapPin, Clock, CheckCircle, XCircle, AlertTriangle, FileText, Truck, Building, Phone, Mail, Eye, CreditCard as Edit, MoreVertical } from 'lucide-react';
-
-interface Transfer {
-  id: number;
-  inmateId: string;
-  inmateName: string;
-  fromPrison: string;
-  toPrison: string;
-  reason: string;
-  requestDate: string;
-  scheduledDate: string;
-  status: 'En attente' | 'Approuvé' | 'En cours' | 'Terminé' | 'Refusé';
-  priority: 'Normale' | 'Urgente' | 'Critique';
-  requestedBy: string;
-  transportType: 'Fourgon' | 'Escorte' | 'Ambulance';
-}
-
-interface Release {
-  id: number;
-  inmateId: string;
-  inmateName: string;
-  prison: string;
-  releaseType: 'Fin de peine' | 'Libération conditionnelle' | 'Grâce présidentielle' | 'Acquittement';
-  scheduledDate: string;
-  status: 'Programmée' | 'En cours' | 'Terminée' | 'Reportée';
-  conditions?: string[];
-  followUpRequired: boolean;
-  contactPerson?: string;
-  documents: string[];
-}
+import type { Transfer } from '../entities/Transfer';
+import type { Release } from '../entities/Release';
 
 const transfers: Transfer[] = [
   {
@@ -125,7 +98,6 @@ export const Transfers: React.FC = () => {
     { id: 'releases', label: 'Sorties', icon: LogOut },
     { id: 'planning', label: 'Planning', icon: Calendar },
     { id: 'transport', label: 'Transport', icon: Truck },
-    { id: 'documents', label: 'Documents', icon: FileText }
   ];
 
   const getStatusColor = (status: string) => {
@@ -447,22 +419,6 @@ export const Transfers: React.FC = () => {
     </div>
   );
 
-  const renderDocumentsTab = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-slate-800">Gestion documentaire</h3>
-      
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h4 className="text-lg font-semibold text-slate-800 mb-2">Documents et formulaires</h4>
-            <p className="text-gray-600">Gestion des documents administratifs pour les transferts et sorties</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'transfers':
@@ -473,8 +429,6 @@ export const Transfers: React.FC = () => {
         return renderPlanningTab();
       case 'transport':
         return renderTransportTab();
-      case 'documents':
-        return renderDocumentsTab();
       default:
         return renderTransfersTab();
     }
