@@ -1,16 +1,30 @@
 import axios from "axios";
+import { useAuthStore } from "../../features/auth/store/auth.store";
+import { refreshToken } from "../../features/auth/api/auth.api";
 
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
+  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8585/",
+  withCredentials: true,
+   headers: {
+    "Content-Type": "application/json"
   },
 });
 
-// Interceptor Request (auth)
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+
+  failedQueue = [];
+};
+
+// 🔹 Request interceptor
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = useAuthStore.getState().accessToken;
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -19,12 +33,46 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor Response (errors)
+
+// 🔹 Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // logout / refresh token
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return axiosInstance(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { accessToken } = await refreshToken();
+        const user = useAuthStore.getState().user;
+        if (user) {
+          useAuthStore.getState().setAuth(accessToken, user);
+        }
+
+        processQueue(null, accessToken);
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return axiosInstance(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        useAuthStore.getState().clearAuth();
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
     }
 
     return Promise.reject(error);

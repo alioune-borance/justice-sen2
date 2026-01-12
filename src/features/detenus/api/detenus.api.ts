@@ -1,5 +1,5 @@
 import { axiosInstance } from "../../../shared/api/axiosInstance";
-import { Detenu } from "../../../entities/Detenu";
+import { Detenu } from "../../../features/detenus/types/detenu";
 
 type DetenusParams = {
   page?: number;
@@ -8,10 +8,27 @@ type DetenusParams = {
 };
 
 export const getDetenus = async (
-    params?: DetenusParams
-):  Promise<{ content: Detenu[]; total: number }> => {
-  const { data } = await axiosInstance.get<{ content: Detenu[]; total: number }>("/detenus", {
-    params
-  });
+  params?: DetenusParams
+): Promise<Detenu[]> => {  // Changed to return array directly
+  const { data } = await axiosInstance.get<Detenu[]>("api/prisoners/", { params });
+  return data;
+};
+
+
+export const getDetenuById = async (id: number): Promise<Detenu> => {
+  const { data } = await axiosInstance.get<Detenu>(`api/prisoners/${id}/`);
+  console.log("Fetched detenu data:", data);
+  return data;
+}
+
+
+export const addNewDetenu = async (detenuData: Omit<Detenu, 'id'>): Promise<Detenu> => {
+  const { data } = await axiosInstance.post<Detenu>('api/prisoners/', detenuData);
+  return data;
+};
+
+// Update detenu - accept partial data
+export const updateDetenu = async (id: number, detenuData: Partial<Omit<Detenu, 'id'>>): Promise<Detenu> => {
+  const { data } = await axiosInstance.put<Detenu>(`api/prisoners/${id}/`, detenuData);
   return data;
 };
