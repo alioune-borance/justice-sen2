@@ -9,9 +9,7 @@ interface InmateListProps {
 
 export const InmateList: React.FC<InmateListProps> = ({ onViewDetail }) => {
   const { data: detenus = [], isLoading, isError } = useGetDetenus();
-  
-  console.log("API detenus:", detenus);
-  
+    
   // Helper functions to calculate derived data
   const calculateSentence = (incarcerationDate: string, releaseDate: string): string => {
     const start = new Date(incarcerationDate);

@@ -19,6 +19,11 @@ import { GenericDashboard } from '../../components/GenericDashboard';
 import { RequireAuth } from "../../features/auth/components/RequireAuth";
 import { LoginPage } from "../../pages/login/LoginPage";
 import { AuthBootstrap } from '../../features/auth/components/AuthBootstrap';
+import { VisiteListPage } from '../../pages/visites/VisitePage';
+import { TransfertListPage } from '../../pages/transferts/TransfertPage';
+import { VisiteDetail } from '../../components/visite/VisiteDetail';
+import { VisiteDetailPage } from '../../pages/visites/VisitDetailPage';
+import { TransfertDetailPage } from '../../pages/transferts/TransfertDetailPage';
 
 export const router = createBrowserRouter([
   // 🔓 ROUTES PUBLIQUES
@@ -66,11 +71,33 @@ export const router = createBrowserRouter([
               },
               {
                 path: "visits",
-                element: <VisitManagement />,
+                children: [
+                  {
+                    index: true, 
+                    element: <VisiteListPage />,
+                    // element: <VisitManagement />,
+                  },
+                  {
+                    path: ":id",
+                    element: <VisiteDetailPage />,
+                  },
+                ],
+                
               },
               {
                 path: "transfers",
-                element: <Transfers />,
+                children: [
+                  {
+                  index: true,
+                  element: <TransfertListPage />
+                  //element: <Transfers />
+                  },
+                  {
+                    path: ":id",
+                    element: <TransfertDetailPage />,
+                  },
+
+                ]
               },
               {
                 path: "pardons",
