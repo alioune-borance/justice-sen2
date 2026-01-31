@@ -1,6 +1,7 @@
 import { Deplacement } from "../../shared/deplacement";
 
 export interface Sortie extends Deplacement {
+    date: string;
     destination: string;
     due_return_date: string;
     is_returned: boolean;

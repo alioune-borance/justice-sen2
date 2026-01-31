@@ -80,7 +80,7 @@ const getTransfert = (from: number, to: number): string => {
       detenu_name: getDetenuName(transfert.prisoner), 
       type_transfert: getTransfert(transfert.from_prison,transfert.to_prison), 
       motif: transfert.purpose,
-      date_prevue: transfert.date,
+      transfer_date: transfert.transfer_date,
       priorite:transfert.priority,
       status: transfert.status,
     } as TransfertTableRow));

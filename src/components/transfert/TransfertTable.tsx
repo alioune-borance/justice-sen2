@@ -133,9 +133,11 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
     
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+
+    console.log(tranferts)
     
     return tranferts.filter(transfsert => {
-      const transferDate = new Date(transfsert.date);
+      const transferDate = new Date(transfsert.transfer_date);
       return transferDate >= today && transferDate < tomorrow;
     }).length;
   }
@@ -223,7 +225,7 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
       // Extract data from form
       const payload = {
         prisoner: parseInt(formData.get('prisoner') as string),
-        date: new Date(formData.get('transfert_date') as string).toISOString(),
+        transfer_date: new Date(formData.get('transfert_date') as string).toISOString(),
         from_prison: parseInt(formData.get('from_prison') as string),
         to_prison: parseInt(formData.get('to_prison') as string),
         //transfert_date: new Date(formData.get('transfert_date') as string).toISOString(),
@@ -388,7 +390,7 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
                 { transfert.motif }
               </td>
               <td className="px-4 py-3">
-                {new Date(transfert.date_prevue).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(transfert.transfer_date).toLocaleDateString('fr-FR')}
               </td>
               <td className={`px-4 py-3`}>
                 <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(transfert.priorite)}`}>{ transfert.priorite }</span>
@@ -502,7 +504,7 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
                     <input 
                       type="date" 
                       name="transfert_date"
-                      defaultValue={selectedTransfert?.date || ''}
+                      defaultValue={selectedTransfert?.transfer_date || ''}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     />
@@ -599,7 +601,7 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-800">Date prévue</p>
-                <p className="text-lg font-bold text-blue-600">{release.due_return_date}</p>
+                <p className="text-lg font-bold text-blue-600">{new Date(release.due_return_date).toLocaleDateString('fr-FR')}</p>
               </div>
             </div>
 
@@ -620,10 +622,10 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <h5 className="text-sm font-medium text-gray-700 mb-2">Date de retour prévue : {release.due_return_date}</h5>
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Date de retour prévue : {new Date(release.due_return_date).toLocaleDateString('fr-FR')}</h5>
               </div>
               <div>
-                <h5 className="text-sm font-medium text-gray-700 mb-2">Date de retour réelle : {release.actual_return_date}</h5>
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Date de retour réelle : {release.actual_return_date ? new Date(release.actual_return_date).toLocaleDateString('fr-FR') : 'Non retourné'}</h5>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

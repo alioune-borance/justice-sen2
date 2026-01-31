@@ -116,7 +116,7 @@ export const TransfertDetailPage: React.FC = () => {
                   <div>
                     <p className="text-sm text-gray-500">Date prévue</p>
                     <p className="font-medium">
-                      {new Date(transfert!.date).toLocaleDateString('fr-FR')}
+                      {new Date(transfert!.transfer_date).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
                 </div>
@@ -125,7 +125,7 @@ export const TransfertDetailPage: React.FC = () => {
                   <div>
                     <p className="text-sm text-gray-500">Heure</p>
                     <p className="font-medium">
-                      {new Date(transfert!.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(transfert!.transfer_date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>

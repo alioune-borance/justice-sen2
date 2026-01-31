@@ -74,7 +74,7 @@ export const VisiteListPage: React.FC = () => {
               purpose: formData.get('purpose') as string,
               start_time: new Date(formData.get('start_time') as string).toISOString(),
               end_time: new Date(formData.get('end_time') as string).toISOString(),
-              status: 'Scheduled',
+              status: 'scheduled',
             };
       
         
