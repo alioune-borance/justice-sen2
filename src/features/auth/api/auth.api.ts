@@ -5,7 +5,7 @@ export const login = async (
   payload: LoginRequest
 ): Promise<AuthResponse> => {
   const response = await axiosInstance.post<AuthResponse>(
-    "api/auth/login/",
+    "auth/login/",
     payload,
     { withCredentials: true } // 🔴 IMPORTANT pour cookie refresh
   );
@@ -14,7 +14,7 @@ export const login = async (
 
 export const refreshToken = async (): Promise<{ accessToken: string }> => {
   const response = await axiosInstance.post(
-    "api/auth/refresh/",
+    "auth/refresh/",
     {},
     { withCredentials: true }
   );

@@ -10,24 +10,24 @@ type Params = {
 export const getTransferts = async (
   params?: Params
 ): Promise<Transfert[]> => {  // Changed to return array directly
-  const { data } = await axiosInstance.get<Transfert[]>("api/transfers/", { params });
+  const { data } = await axiosInstance.get<Transfert[]>("transfers/", { params });
   return data;
 };
 
 export const getTransfertById = async (id: number): Promise<Transfert> => {   
   console.log(id);
-    const { data } = await axiosInstance.get<Transfert>(`api/transfers/${id}/`); 
+    const { data } = await axiosInstance.get<Transfert>(`transfers/${id}/`); 
     console.log("Fetched transfert data:", data);
     return data;
 }
 
 export const addNewTransfert = async (TransfertData: Omit<Transfert, 'id'>): Promise<Transfert> => {
-  const { data } = await axiosInstance.post<Transfert>('api/transfers/', TransfertData);
+  const { data } = await axiosInstance.post<Transfert>('transfers/', TransfertData);
   return data;
 };
 
 // Update Transfert - accept partial data
 export const updateTransfert = async (id: number, TransfertData: Partial<Omit<Transfert, 'id'>>): Promise<Transfert> => {
-  const { data } = await axiosInstance.put<Transfert>(`api/transfers/${id}/`, TransfertData);
+  const { data } = await axiosInstance.put<Transfert>(`transfers/${id}/`, TransfertData);
   return data;
 };  
