@@ -7,6 +7,7 @@ interface InmateStatsProps {
   convicted: number;
   pretrial: number;
   convictedPercentage: number;
+  liberationsThisMonth: number;
 }
 
 export const InmateStats: React.FC<InmateStatsProps> = ({
@@ -14,6 +15,7 @@ export const InmateStats: React.FC<InmateStatsProps> = ({
   convicted,
   pretrial,
   convictedPercentage,
+  liberationsThisMonth
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -49,7 +51,7 @@ export const InmateStats: React.FC<InmateStatsProps> = ({
           <User className="h-6 w-6 text-green-600" />
           <h3 className="text-lg font-semibold text-slate-800">Libérations</h3>
         </div>
-        <div className="text-3xl font-bold text-slate-800 mb-2">142</div>
+        <div className="text-3xl font-bold text-slate-800 mb-2">{ liberationsThisMonth }</div>
         <p className="text-sm text-gray-600">Ce mois-ci</p>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { Deplacement } from "../../shared/deplacement";
 // features/transferts/types/transfert.ts
 export interface Transfert extends Deplacement{
     transfer_date: string;
+    date: string;
     from_prison: number;
     to_prison: number;
     priority: string;

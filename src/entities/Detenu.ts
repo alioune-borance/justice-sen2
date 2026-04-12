@@ -54,6 +54,7 @@ export class Detenu {
   release_date: Date;
   incarceration_date: Date;
   prison: number;
+  matricule_number: string;
 
     constructor(id: number,
         first_name: string,
@@ -61,7 +62,8 @@ export class Detenu {
         date_of_birth: Date,
         release_date: Date,
         incarceration_date: Date,
-        prison: number
+        prison: number,
+        matricule_number: string
 
             ) {
         this.id = id;
@@ -71,7 +73,7 @@ export class Detenu {
         this.release_date = release_date;
         this.incarceration_date = incarceration_date;
         this.prison = prison;  
-
+        this.matricule_number = matricule_number
     }
 }
 

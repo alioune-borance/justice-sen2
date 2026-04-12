@@ -7,7 +7,7 @@ import { InmateTableRow } from '../../features/detenus/types/detenu';
 interface InmateTableProps {
   detenus: InmateTableRow[];
   onViewDetail: (id: number) => void;
-  onEdit: (detenu: Detenu) => void;
+  onEdit: (id: number) => void;
   loading?: boolean;
 }
 
@@ -17,6 +17,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
   onEdit,
   loading = false,
 }) => {
+  console.log('InmateTable - Detenus:', detenus);
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Condamné':
@@ -81,7 +82,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-800">{detenu.ecrouNumber}</td>
+              <td className="px-4 py-3 text-sm text-gray-800">{detenu.matricule_number}</td>
               <td className="px-4 py-3 text-sm text-gray-800">
                 {new Date(detenu.date_of_birth).toLocaleDateString('fr-FR')}
               </td>
@@ -89,7 +90,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
                 {new Date(detenu.incarceration_date).toLocaleDateString('fr-FR')}
               </td>
               <td className="px-4 py-3 text-sm text-gray-800">
-                {new Date(detenu.release_date).toLocaleDateString('fr-FR')}
+                {detenu.release_date ? new Date(detenu.release_date).toLocaleDateString('fr-FR') : '—'}
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center space-x-2">
@@ -118,7 +119,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
                     <Eye className="h-4 w-4" />
                   </button>
                   <button 
-                    onClick={() => onEdit(detenu)}
+                    onClick={() => onEdit(detenu.id)}
                     className="p-1 text-gray-600 hover:text-gray-800" 
                     title="Modifier"
                   >

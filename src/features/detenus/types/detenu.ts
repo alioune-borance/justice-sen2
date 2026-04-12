@@ -7,6 +7,13 @@ export interface Detenu {
   incarceration_date: string;
   release_date: string;
   prison: number;
+  status: string;
+  nationality: string;
+  national_id: string;
+  height: number;
+  weight: number;
+  matricule_number: string;
+  sex: string;
 }
 
 // For creating (without id)

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, User, Eye, Edit, MoreVertical } from 'lucide-react';
+import { Search, Filter, User, Eye, Edit, MoreVertical, Plus } from 'lucide-react';
 import { useGetDetenus } from '../features/detenus/api/useGetDetenu';
 import { Detenu } from '../entities/Detenu'; // Adjust path as needed
 
@@ -119,7 +119,8 @@ export const InmateList: React.FC<InmateListProps> = ({ onViewDetail }) => {
           onClick={() => setIsModalOpen(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
-          Nouveau détenu
+          <Plus className="h-4 w-4 mr-2 inline" />
+          Ajouter un nouveau détenu
         </button>
       </div>
 
@@ -212,7 +213,7 @@ export const InmateList: React.FC<InmateListProps> = ({ onViewDetail }) => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-800">{ecrouNumber}</td>
+                      <td className="px-4 py-3 text-sm text-gray-800">{ detenu.matricule_number }</td>
                       <td className="px-4 py-3 text-sm text-gray-800">
                         {new Date(detenu.date_of_birth).toLocaleDateString('fr-FR')}
                       </td>

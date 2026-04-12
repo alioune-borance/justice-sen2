@@ -107,12 +107,12 @@ const getVisitorName = (visitor_id: number) => {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {visites.map((visite) => (
-              <tr key={`${visite.id}-${getVisitorName(visite.visitor_id)}`} className="hover:bg-gray-50">
+              <tr key={`${visite.id}-${getVisitorName(visite.visitor_name.id)}`} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
                   {visite.detenu_name}
                 </td>
                 <td className="px-4 py-3">
-                  { getVisitorName(visite.visitor_id) }
+                  { visite.visitor }
                 </td>
                 <td className="px-4 py-3">
                   {new Date(visite.visit_date).toLocaleDateString('fr-FR')}
@@ -136,9 +136,17 @@ const getVisitorName = (visitor_id: number) => {
                     <button
                       onClick={() => onViewDetail(visite.id)}
                       className="p-1 text-blue-600 hover:text-blue-800"
+                      title="Voir le détail"
                     >
                       <Eye className="h-4 w-4" />
-                      </button>
+                    </button>
+                    <button
+                      onClick={() => onEdit(visite)}
+                      className="p-1 text-gray-500 hover:text-gray-800"
+                      title="Modifier"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
                   </div>
                 </td>
               </tr>

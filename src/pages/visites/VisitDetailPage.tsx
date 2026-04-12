@@ -1,18 +1,28 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, MapPin, Scale, Clock } from 'lucide-react';
-import { useGetDetenuById } from "../../features/detenus/api/useGetDetenu";
+import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, Printer } from 'lucide-react';
+import { useGetDetenuById, useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { useGetVisiteById, useGetVisitors } from '../../features/visites/api/useGetVisite';
 import { Visitor } from '../../features/visites/types/visitor';
+import { Detenu } from '../../features/detenus/types/detenu';
+import { useReactToPrint } from 'react-to-print';
 
 export const VisiteDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const visiteId = parseInt(id || '0');
+  const printRef = useRef<HTMLDivElement>(null);
 
-  const { data: visit, isLoading, isError } = useGetVisiteById(visiteId);
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Rapport_Visite_${visiteId}`,
+  });
+
+  const { data: visit, isLoading } = useGetVisiteById(visiteId);
   const { data: visitorList = [], isLoading: isLoadingVisitors } = useGetVisitors();
 
+  const { data: detenusList = [] } = useGetDetenus();
+  
   const getVisitorName = (visitor_id: number) => {
         const visitor = visitorList.find((v: Visitor) => v.id === visitor_id);
         return visitor ? `${visitor.name}` : "...";
@@ -42,6 +52,11 @@ export const VisiteDetailPage: React.FC = () => {
     return `${diff} min`;
   };
 
+  const getDetenuName = (prisoner: number) => {
+      const detenu = detenusList.find((d: Detenu) => d.id === prisoner);
+      return detenu ? `${detenu.first_name} ${detenu.last_name}` : '';
+    };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -53,7 +68,7 @@ export const VisiteDetailPage: React.FC = () => {
     );
   }
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={printRef}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
@@ -79,7 +94,7 @@ export const VisiteDetailPage: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">
-                    Detenu Name - {getVisitorName(visit!.visitor_id)}
+                    { getDetenuName(visit!.prisoner) }
                   </h2>
                   <p className="text-gray-600">N° de visite: {visit!.id}</p>
                 </div>
@@ -136,7 +151,7 @@ export const VisiteDetailPage: React.FC = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Nom complet</span>
-                      <span className="font-medium">detenu name</span>
+                      <span className="font-medium">{ getDetenuName(visit!.prisoner )}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">N° d'écrou</span>
@@ -152,7 +167,7 @@ export const VisiteDetailPage: React.FC = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Nom</span>
-                      <span className="font-medium">{getVisitor(visit!.visitor_id)?.name}</span>
+                      <span className="font-medium">{ visit!.visitor_name.name }</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Relation</span>
@@ -160,7 +175,7 @@ export const VisiteDetailPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Téléphone</span>
-                      <span className="font-medium">{getVisitor(visit!.visitor_id)?.phone_number}</span>
+                      <span className="font-medium">{ visit?.visitor_name.phone_number }</span>
                     </div>
                   </div>
                 </div>
@@ -193,28 +208,6 @@ export const VisiteDetailPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Autorisation</h4>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Autorisée par</span>
-                      <span className="font-medium">{visit.authorized_by}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Date d'autorisation</span>
-                      <span className="font-medium">
-                        {new Date(visit.authorization_date).toLocaleDateString('fr-FR')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Raison</span>
-                      <span className="font-medium">{visit.purpose}</span>
-                    </div>
-                  </div>
-                </div>
-              </div> */}
             </div>
           </div>
 
@@ -230,13 +223,15 @@ export const VisiteDetailPage: React.FC = () => {
         {/* Action Buttons */}
         <div className="p-6 border-t border-gray-200">
           <div className="flex justify-end space-x-3">
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <button
+              onClick={() => handlePrint()}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <Printer className="h-4 w-4" />
               Imprimer le rapport
             </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              Annuler la visite
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" 
+             onClick={() => navigate(`/visits/update/${visit!.id}`)}>
               Modifier la visite
             </button>
           </div>

@@ -3,6 +3,8 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, FolderOpen, Eye, Download, Trash2, Upload, File } from 'lucide-react';
 import { useGetDetenuById } from '../../features/detenus/api/useGetDetenu';
+import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
+import { Prison } from '../../features/prisons/types/prison';
 const documents = [
     {
       id: 1,
@@ -59,8 +61,10 @@ export const InmateDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const detenuId = parseInt(id || '0');
 
-  const { data: detenu, isLoading, isError } = useGetDetenuById(detenuId);
+  const { data: detenu, isLoading, isError } = useGetDetenuById(detenuId,{enabled : true});
 
+  const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -98,13 +102,8 @@ export const InmateDetailPage: React.FC = () => {
   };
 
   const getPrisonName = (prisonId: number): string => {
-    const prisons: Record<number, string> = {
-      1: "Fresnes",
-      2: "Marseille",
-      3: "Lyon",
-      4: "Bordeaux"
-    };
-    return prisons[prisonId] || `Prison #${prisonId}`;
+    const prison = prisons.find((p: Prison) => p.id === prisonId);
+    return prison?.name || `Prison #${prisonId}`;
   };
 
   const calculateAge = (dateOfBirth: string): number => {
@@ -223,7 +222,7 @@ export const InmateDetailPage: React.FC = () => {
                   <MapPin className="h-4 w-4 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-500">Établissement</p>
-                    <p className="font-medium">{getPrisonName(detenu.prison)}</p>
+                    <p className="font-medium">{ getPrisonName(detenu.prison) }</p>
                   </div>
                 </div>
               </div>
@@ -247,12 +246,8 @@ export const InmateDetailPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Lieu de naissance</span>
-                      <span className="font-medium text-gray-400">Non renseigné</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-gray-600">Nationalité</span>
-                      <span className="font-medium text-gray-400">Non renseignée</span>
+                      <span className="font-medium text-gray-400">{ detenu.nationality }</span>
                     </div>
                   </div>
                 </div>
@@ -268,7 +263,7 @@ export const InmateDetailPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Statut juridique</span>
-                      <span className="font-medium">Condamné</span>
+                      <span className="font-medium">{ detenu.status }</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Avocat</span>
