@@ -13,7 +13,7 @@ export const useGetDetenus = () =>
     staleTime: 30 * 60 * 1000, 
   });
 
-export const useGetDetenuById = (id: number) =>
+export const useGetDetenuById = (id: number, p0: { enabled: boolean; }) =>
   useQuery({
     queryKey: ["detenu", id],
     queryFn: () => getDetenuById(id),

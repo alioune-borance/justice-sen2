@@ -12,6 +12,7 @@ export const getVisites = async (
   params?: Params
 ): Promise<Visite[]> => {  // Changed to return array directly
   const { data } = await axiosInstance.get<Visite[]>("api/visits/", { params });
+  console.log(data)
   return data;
 };
 

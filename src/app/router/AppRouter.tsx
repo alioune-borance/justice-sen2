@@ -1,11 +1,9 @@
 // router/router.tsx
-import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from '../../widgets/layout/Layout';
 import { Dashboard } from '../../components/Dashboard';
 import { InmateListPage } from '../../pages/inmates/DetenusPage';
 import { InmateDetailPage } from '../../pages/inmates/DetenuDetailPage';
-import { VisitManagement } from '../../components/VisitManagement';
 import { PresidentialPardons } from '../../components/PresidentialPardons';
 import { SecurityDashboard } from '../../components/SecurityDashboard';
 import { ReinsertionManagement } from '../../components/ReinsertionManagement';
@@ -13,7 +11,6 @@ import { TransfersReleases } from '../../components/TransfersReleases';
 import { ReportsManagement } from '../../components/ReportsManagement';
 import { Users } from '../../components/Users';
 import { Settings } from '../../components/Settings';
-import { Transfers } from '../../components/Transfers';
 import { GenericDashboard } from '../../components/GenericDashboard';
 
 import { RequireAuth } from "../../features/auth/components/RequireAuth";
@@ -21,9 +18,16 @@ import { LoginPage } from "../../pages/login/LoginPage";
 import { AuthBootstrap } from '../../features/auth/components/AuthBootstrap';
 import { VisiteListPage } from '../../pages/visites/VisitePage';
 import { TransfertListPage } from '../../pages/transferts/TransfertPage';
-import { VisiteDetail } from '../../components/visite/VisiteDetail';
 import { VisiteDetailPage } from '../../pages/visites/VisitDetailPage';
+import { VisiteFormPage } from '../../pages/visites/VisiteFormPage';
 import { TransfertDetailPage } from '../../pages/transferts/TransfertDetailPage';
+import { DetenuFormPage } from '../../pages/inmates/DetenuFormPage';
+import { TransfertFormPage } from '../../pages/transferts/TransfertFormPage';
+import { SortieFormPage } from '../../pages/transferts/SortieFormPage';
+import { IncidentsPage } from '../../pages/incidents/IncidentsPage';
+import { IncidentFormPage } from '../../pages/incidents/IncidentFormPage';
+import { InfirmeriePage } from '../../pages/infirmerie/InfirmeriePage';
+import { InfirmerieFormPage } from '../../pages/infirmerie/InfirmerieFormPage';
 
 export const router = createBrowserRouter([
   // 🔓 ROUTES PUBLIQUES
@@ -67,37 +71,65 @@ export const router = createBrowserRouter([
                     path: ":id",
                     element: <InmateDetailPage />,
                   },
+                  {
+                    path: "new",
+                    element: <DetenuFormPage />,
+                  },
+                  {
+                    path: "update/:id",
+                    element: <DetenuFormPage />,
+                  }
                 ],
               },
               {
                 path: "visits",
                 children: [
                   {
-                    index: true, 
+                    index: true,
                     element: <VisiteListPage />,
-                    // element: <VisitManagement />,
+                  },
+                  {
+                    path: "new",
+                    element: <VisiteFormPage />,
+                  },
+                  {
+                    path: "update/:id",
+                    element: <VisiteFormPage />,
                   },
                   {
                     path: ":id",
                     element: <VisiteDetailPage />,
                   },
                 ],
-                
               },
               {
                 path: "transfers",
                 children: [
                   {
-                  index: true,
-                  element: <TransfertListPage />
-                  //element: <Transfers />
+                    index: true,
+                    element: <TransfertListPage />,
+                  },
+                  {
+                    path: "new",
+                    element: <TransfertFormPage />,
+                  },
+                  {
+                    path: "update/:id",
+                    element: <TransfertFormPage />,
+                  },
+                  {
+                    path: "sorties/new",
+                    element: <SortieFormPage />,
+                  },
+                  {
+                    path: "sorties/update/:id",
+                    element: <SortieFormPage />,
                   },
                   {
                     path: ":id",
                     element: <TransfertDetailPage />,
                   },
-
-                ]
+                ],
               },
               {
                 path: "pardons",
@@ -114,6 +146,22 @@ export const router = createBrowserRouter([
               {
                 path: "reports",
                 element: <ReportsManagement />,
+              },
+              {
+                path: "incidents",
+                children: [
+                  { index: true, element: <IncidentsPage /> },
+                  { path: "new", element: <IncidentFormPage /> },
+                  { path: "update/:id", element: <IncidentFormPage /> },
+                ],
+              },
+              {
+                path: "infirmerie",
+                children: [
+                  { index: true, element: <InfirmeriePage /> },
+                  { path: "new", element: <InfirmerieFormPage /> },
+                  { path: "update/:id", element: <InfirmerieFormPage /> },
+                ],
               },
               {
                 path: "security",

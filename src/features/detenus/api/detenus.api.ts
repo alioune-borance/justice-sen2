@@ -11,6 +11,7 @@ export const getDetenus = async (
   params?: DetenusParams
 ): Promise<Detenu[]> => {  // Changed to return array directly
   const { data } = await axiosInstance.get<Detenu[]>("api/prisoners/", { params });
+  console.log(data)
   return data;
 };
 
