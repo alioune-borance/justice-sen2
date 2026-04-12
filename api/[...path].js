@@ -1,9 +1,10 @@
 const BACKEND = "http://98.94.8.107:8090";
 
 export default async function handler(req, res) {
-  // Extraire le chemin après /api/
-  const path = req.url.replace(/^\/?api/, "");
-  const targetUrl = `${BACKEND}/api${path}`;
+  // req.query.path est un tableau : ["auth", "login"]
+  const segments = req.query.path || [];
+  const targetPath = "/api/" + segments.join("/") + "/";
+  const targetUrl = BACKEND + targetPath;
 
   const headers = { "Content-Type": "application/json" };
   if (req.headers["authorization"]) {
@@ -22,7 +23,6 @@ export default async function handler(req, res) {
   try {
     const backendRes = await fetch(targetUrl, options);
 
-    // Transmettre les cookies (refresh token)
     const setCookie = backendRes.headers.get("set-cookie");
     if (setCookie) res.setHeader("set-cookie", setCookie);
 
