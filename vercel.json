@@ -1,5 +1,15 @@
 {
+  "version": 2,
+  "trailingSlash": false,
   "rewrites": [
+    {
+      "source": "/api/hello",
+      "destination": "/api/hello"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/proxy"
+    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
