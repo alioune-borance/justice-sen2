@@ -1,18 +1,11 @@
-const BACKEND_URL = "http://98.94.8.107:8090";
-
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
+const BACKEND = "http://98.94.8.107:8090";
 
 export default async function handler(req, res) {
-  const backendUrl = `${BACKEND_URL}${req.url}`;
+  // Extraire le chemin après /api/
+  const path = req.url.replace(/^\/?api/, "");
+  const targetUrl = `${BACKEND}/api${path}`;
 
-  const headers = {
-    "Content-Type": "application/json",
-  };
-
+  const headers = { "Content-Type": "application/json" };
   if (req.headers["authorization"]) {
     headers["authorization"] = req.headers["authorization"];
   }
@@ -20,24 +13,21 @@ export default async function handler(req, res) {
     headers["cookie"] = req.headers["cookie"];
   }
 
-  const options = {
-    method: req.method,
-    headers,
-  };
+  const options = { method: req.method, headers };
 
   if (req.body && ["POST", "PUT", "PATCH"].includes(req.method)) {
     options.body = JSON.stringify(req.body);
   }
 
   try {
-    const backendRes = await fetch(backendUrl, options);
+    const backendRes = await fetch(targetUrl, options);
 
     // Transmettre les cookies (refresh token)
     const setCookie = backendRes.headers.get("set-cookie");
     if (setCookie) res.setHeader("set-cookie", setCookie);
 
-    const contentType = backendRes.headers.get("content-type");
-    if (contentType) res.setHeader("content-type", contentType);
+    const contentType = backendRes.headers.get("content-type") || "application/json";
+    res.setHeader("content-type", contentType);
 
     const body = await backendRes.text();
     res.status(backendRes.status).send(body);
