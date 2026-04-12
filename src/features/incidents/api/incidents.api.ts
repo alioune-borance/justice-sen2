@@ -1,7 +1,7 @@
 import { axiosInstance } from '../../../shared/api/axiosInstance';
 import { Incident, DisciplinaryRecord } from '../types/incident';
 
-const PRISONERS = 'api/prisoners';
+const PRISONERS = 'prisoners';
 
 type Params = { page?: number; size?: number };
 

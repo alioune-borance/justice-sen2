@@ -10,12 +10,12 @@ type PrisonsParams = {
 export const getPrisons = async (
   params?: PrisonsParams
 ): Promise<Prison[]> => {  // Changed to return array directly
-  const { data } = await axiosInstance.get<Prison[]>("api/prison/", { params });
+  const { data } = await axiosInstance.get<Prison[]>("prison/", { params });
   return data;
 };
 
 
 export const getPrisonById = async (id: number): Promise<Prison> => {
-  const { data } = await axiosInstance.get<Prison>(`api/prison/${id}/`);
+  const { data } = await axiosInstance.get<Prison>(`prison/${id}/`);
   return data;
 }

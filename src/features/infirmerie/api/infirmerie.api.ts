@@ -1,7 +1,7 @@
 import { axiosInstance } from '../../../shared/api/axiosInstance';
 import { InfirmeriePatient, HealthRecord } from '../types/infirmerie';
 
-const PRISONERS = 'api/prisoners';
+const PRISONERS = 'prisoners';
 
 export const getInfirmeriePatients = async (): Promise<InfirmeriePatient[]> => {
   const { data } = await axiosInstance.get<InfirmeriePatient[]>(PRISONERS + '/?expand=health_records');
