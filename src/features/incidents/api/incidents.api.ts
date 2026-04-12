@@ -15,19 +15,21 @@ export const getPrisonerById = async (id: number): Promise<Incident> => {
   return data;
 };
 
-// Récupère le détenu, ajoute le nouveau record, puis PUT
 export const addDisciplinaryRecord = async (
   prisonerId: number,
   newRecord: DisciplinaryRecord
 ): Promise<Incident> => {
   const { data: current } = await axiosInstance.get<Incident>(
-    PRISONERS + `/${prisonerId}/?expand=disciplinary_records`
+    `${PRISONERS}/${prisonerId}/?expand=disciplinary_records`
   );
   const updatedRecords = [...(current.disciplinary_records ?? []), newRecord];
-  const { data } = await axiosInstance.put<Incident>(PRISONERS + `/${prisonerId}/?expand=disciplinary_records`, {
-    ...current,
-    disciplinary_records: updatedRecords,
-  });
-  console.log(data)
-  return data;
+  await axiosInstance.patch<Incident>(
+    `${PRISONERS}/${prisonerId}/?expand=disciplinary_records`,
+    { disciplinary_records: updatedRecords }
+  );
+  // Refetch pour obtenir la version à jour confirmée par le backend
+  const { data: updated } = await axiosInstance.get<Incident>(
+    `${PRISONERS}/${prisonerId}/?expand=disciplinary_records`
+  );
+  return updated;
 };

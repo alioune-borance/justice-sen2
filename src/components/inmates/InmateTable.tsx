@@ -1,6 +1,6 @@
 // features/detenus/components/InmateTable.tsx
-import React from 'react';
-import { User, Eye, Edit, MoreVertical } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Eye, Edit, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Detenu } from '../../features/detenus/types/detenu';
 import { InmateTableRow } from '../../features/detenus/types/detenu';
 
@@ -11,13 +11,24 @@ interface InmateTableProps {
   loading?: boolean;
 }
 
+const PAGE_SIZE = 10;
+
 export const InmateTable: React.FC<InmateTableProps> = ({
   detenus,
   onViewDetail,
   onEdit,
   loading = false,
 }) => {
-  console.log('InmateTable - Detenus:', detenus);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Revenir à la page 1 quand la liste change (filtre, recherche…)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [detenus]);
+
+  const totalPages = Math.max(1, Math.ceil(detenus.length / PAGE_SIZE));
+  const paginated = detenus.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Condamné':
@@ -65,7 +76,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {detenus.map((detenu) => (
+          {paginated.map((detenu) => (
             <tr key={`${detenu.id}-${detenu.ecrouNumber}`} className="hover:bg-gray-50">
               <td className="px-4 py-3">
                 <div className="flex items-center space-x-3">
@@ -134,6 +145,46 @@ export const InmateTable: React.FC<InmateTableProps> = ({
           ))}
         </tbody>
       </table>
+
+      {/* ── Pagination ── */}
+      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+        <p className="text-sm text-gray-600">
+          {detenus.length === 0
+            ? 'Aucun résultat'
+            : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, detenus.length)} sur ${detenus.length} détenus`}
+        </p>
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={() => setCurrentPage((p) => p - 1)}
+            disabled={currentPage === 1}
+            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Page précédente"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`min-w-[32px] px-2 py-1 rounded text-sm ${
+                page === currentPage
+                  ? 'bg-slate-700 text-white font-semibold'
+                  : 'hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            disabled={currentPage === totalPages}
+            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Page suivante"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

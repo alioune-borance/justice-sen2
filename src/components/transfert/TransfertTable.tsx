@@ -27,14 +27,35 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('transfers');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortieSearchTerm, setSortieSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+
+  const filteredTransferts = tranferts.filter((t) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      t.detenu_name?.toLowerCase().includes(q) ||
+      t.motif?.toLowerCase().includes(q) ||
+      t.type_transfert?.toLowerCase().includes(q) ||
+      t.status?.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredSorties = sorties.filter((s) => {
+    const q = sortieSearchTerm.toLowerCase();
+    return (
+      s.detenu_name?.toLowerCase().includes(q) ||
+      s.destination?.toLowerCase().includes(q) ||
+      s.authorized_by?.toLowerCase().includes(q) ||
+      s.status?.toLowerCase().includes(q)
+    );
+  });
 
   const tabs = [
     { id: 'transfers', label: 'Transferts', icon: ArrowRightLeft },
     { id: 'releases', label: 'Sorties', icon: LogOut },
-    { id: 'planning', label: 'Planning', icon: Calendar },
-    { id: 'transport', label: 'Transport', icon: Truck },
+    // { id: 'planning', label: 'Planning', icon: Calendar },
+    // { id: 'transport', label: 'Transport', icon: Truck },
   ];
 
   const getCountTransfertsToday = () => {
@@ -101,7 +122,7 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
             />
           </div>
         </div>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={statusFilter}
@@ -123,7 +144,7 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
             <option value="URGENT">Urgente</option>
             <option value="NORMAL">Normale</option>
           </select>
-        </div>
+        </div> */}
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -140,7 +161,9 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {tranferts.map((transfert) => (
+            {filteredTransferts.length === 0 ? (
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500 text-sm">Aucun transfert trouvé</td></tr>
+            ) : filteredTransferts.map((transfert) => (
               <tr key={`${transfert.id}-${transfert.detenu_name}`} className="hover:bg-gray-50">
                 <td className="px-4 py-3">{transfert.detenu_name}</td>
                 <td className="px-4 py-3">{transfert.type_transfert}</td>
@@ -191,8 +214,23 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
         </button>
       </div>
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Rechercher par nom, destination, autorisé par, statut..."
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          value={sortieSearchTerm}
+          onChange={(e) => setSortieSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {filteredSorties.length === 0 && (
+        <p className="text-center text-gray-500 text-sm py-6">Aucune sortie trouvée</p>
+      )}
+
       <div className="space-y-4">
-        {sorties.map((release) => (
+        {filteredSorties.map((release) => (
           <div key={release.id} className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-4">

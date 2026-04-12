@@ -50,7 +50,7 @@ export const InmateFilters: React.FC<InmateFiltersProps> = ({
           <option value="Condamné">Condamné</option>
           <option value="Prévenu">Prévenu</option>
         </select>
-        <select
+        {/* <select
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           value={prisonFilter}
           onChange={(e) => onPrisonFilterChange(e.target.value)}
@@ -61,7 +61,7 @@ export const InmateFilters: React.FC<InmateFiltersProps> = ({
               {option.label}
             </option>
           ))}
-        </select>
+        </select> */}
         <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
           <Filter className="h-4 w-4" />
           <span>Filtres</span>

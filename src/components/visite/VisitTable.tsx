@@ -1,7 +1,7 @@
 // features/visites/components/VisitTable.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { VisiteTableRow } from '../../features/visites/types/visite';
-import { Eye, Edit, MoreVertical, Calendar, Clock, User } from 'lucide-react';
+import { Eye, Edit, Calendar, Clock, User, Search } from 'lucide-react';
 import { useGetVisitors } from '../../features/visites/api/useGetVisite';
 import { Visitor } from '../../features/visites/types/visitor';
 
@@ -18,6 +18,7 @@ export const VisitTable: React.FC<VisitTableProps> = ({
   onEdit,
   loading = false,
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
   const { data: visitorList = [], isLoading: isLoadingVisitors } = useGetVisitors();
   
   const getVisitsProgrammedToday = () => {
@@ -50,7 +51,17 @@ const getVisitorName = (visitor_id: number) => {
     totalVisit : visites.length,
     totalProgrammed: getVisitsProgrammed(),
     totalProgrammedToday: getVisitsProgrammedToday(),
-  }
+  };
+
+  const filteredVisites = visites.filter((v) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      v.detenu_name?.toLowerCase().includes(q) ||
+      v.visitor?.toLowerCase().includes(q) ||
+      v.purpose?.toLowerCase().includes(q) ||
+      v.status?.toLowerCase().includes(q)
+    );
+  });
 
   
   if (loading) {
@@ -92,6 +103,16 @@ const getVisitorName = (visitor_id: number) => {
   return (
     <div className="overflow-x-auto">
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher par détenu, visiteur, raison, statut..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
         <table className="w-full min-w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -106,7 +127,9 @@ const getVisitorName = (visitor_id: number) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {visites.map((visite) => (
+            {filteredVisites.length === 0 ? (
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500 text-sm">Aucune visite trouvée</td></tr>
+            ) : filteredVisites.map((visite) => (
               <tr key={`${visite.id}-${getVisitorName(visite.visitor_name.id)}`} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
                   {visite.detenu_name}
