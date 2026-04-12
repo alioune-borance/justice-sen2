@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Stethoscope,
   Search,
@@ -8,6 +8,8 @@ import {
   X,
   HeartPulse,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useNavigate } from 'react-router-dom';
 import { useGetInfirmeriePatients } from '../../features/infirmerie/api/useGetInfirmerie';
 import { InfirmeriePatient, HealthRecord } from '../../features/infirmerie/types/infirmerie';
@@ -107,6 +109,80 @@ export const InfirmeriePage: React.FC = () => {
   const dismissAlert = (id: string) =>
     setDismissedAlerts((prev) => new Set([...prev, id]));
 
+  const generateReport = useCallback(() => {
+    const doc = new jsPDF();
+    const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    doc.setFillColor(13, 148, 136);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+    doc.text('Rapport — Infirmerie', 14, 12);
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+    doc.text(`Administration Pénitentiaire du Sénégal  —  Généré le ${date}`, 14, 22);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+    doc.text('Statistiques médicales', 14, 38);
+
+    const chronicCount = patients.filter(p => p.health_records.length >= 3).length;
+    autoTable(doc, {
+      startY: 42,
+      head: [['Indicateur', 'Valeur']],
+      body: [
+        ['Détenus avec dossier médical', String(stats.total)],
+        ['Nouveaux cas cette semaine', String(stats.thisWeek)],
+        ['Détenus à suivi intensif (≥ 3 dossiers)', String(chronicCount)],
+        ['Résultats du filtre actif', String(filtered.length)],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [13, 148, 136], fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      columnStyles: { 1: { fontStyle: 'bold', halign: 'center', cellWidth: 25 } },
+      margin: { left: 14, right: 14 },
+    });
+
+    const y1 = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 41, 59);
+    doc.text(`Dossiers médicaux (${filtered.length})`, 14, y1);
+
+    const rows: (string | number)[][] = [];
+    filtered.forEach(p => {
+      const sorted = [...p.health_records].sort(
+        (a, b) => new Date(b.date_diagnosis).getTime() - new Date(a.date_diagnosis).getTime()
+      );
+      sorted.forEach((r, ri) => {
+        rows.push([
+          ri === 0 ? `${p.first_name} ${p.last_name}` : '',
+          ri === 0 ? (p.matricule_number ?? '—') : '',
+          r.condition_medical,
+          new Date(r.date_diagnosis).toLocaleDateString('fr-FR'),
+          r.description,
+        ]);
+      });
+    });
+
+    autoTable(doc, {
+      startY: y1 + 4,
+      head: [['Détenu', 'Matricule', 'Condition médicale', 'Date diagnostic', 'Description']],
+      body: rows,
+      theme: 'striped',
+      headStyles: { fillColor: [13, 148, 136], fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: { 0: { fontStyle: 'bold' }, 4: { cellWidth: 60 } },
+      margin: { left: 8, right: 8 },
+      styles: { overflow: 'linebreak' },
+    });
+
+    const pageCount = doc.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p); doc.setFontSize(8); doc.setTextColor(148, 163, 184);
+      doc.text('Document confidentiel — Ne pas diffuser sans autorisation', 8, 290);
+      doc.text(`Page ${p} / ${pageCount}`, 202, 290, { align: 'right' });
+    }
+    doc.save(`infirmerie-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }, [patients, filtered, stats]);
+
   const alertStyles: Record<AlertLevel, { container: string; icon: string; title: string; text: string }> = {
     critique: { container: 'bg-red-50 border-red-300',       icon: 'text-red-600 bg-red-100',       title: 'text-red-800',    text: 'text-red-700'    },
     grave:    { container: 'bg-orange-50 border-orange-300', icon: 'text-orange-600 bg-orange-100', title: 'text-orange-800', text: 'text-orange-700' },
@@ -123,13 +199,25 @@ export const InfirmeriePage: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-slate-800">Infirmerie</h2>
         </div>
-        <button
-          onClick={() => navigate('/infirmerie/new')}
-          className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
-        >
-          <Stethoscope className="h-4 w-4" />
-          Nouveau dossier médical
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={generateReport}
+            disabled={isLoading || patients.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            Rapport PDF
+          </button>
+          <button
+            onClick={() => navigate('/infirmerie/new')}
+            className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
+          >
+            <Stethoscope className="h-4 w-4" />
+            Nouveau dossier médical
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

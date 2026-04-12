@@ -1,6 +1,8 @@
 // features/detenus/pages/InmateListPage.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useGetDetenus, useCreateDetenu, useUpdateDetenu } from '../../features/detenus/api/useGetDetenu';
 import { Detenu, InmateTableRow } from '../../features/detenus/types/detenu';
 import { InmateTable } from '../../components/inmates/InmateTable';
@@ -19,10 +21,15 @@ export const InmateListPage: React.FC = () => {
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons(); // Use the correct data property
   
   // UNIFIED STATE
-
+  const [showFilterModal, setShowFilterModal] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [prisonFilter, setPrisonFilter] = useState('all');
+
+  const selectFilter = (filter: string) => {
+    setStatusFilter(filter);
+    setShowFilterModal(false);
+  };
   
 
   const handleViewDetail = (id: number) => {
@@ -120,6 +127,106 @@ export const InmateListPage: React.FC = () => {
     }));
   }, [prisons]);
 
+  const filterLabel =
+    statusFilter === 'Condamné' ? 'Condamnés' :
+    statusFilter === 'Prévenu'  ? 'Prévenus'  : 'Tous les détenus';
+
+  const generateReport = useCallback(() => {
+    const doc = new jsPDF();
+    const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const { total, convicted, pretrial, convictedPercentage, liberationsThisMonth } = statistics;
+
+    // ── En-tête ──
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Rapport — Gestion des détenus', 14, 12);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Administration Pénitentiaire du Sénégal  —  Généré le ${date}`, 14, 22);
+
+    // ── Statistiques générales ──
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Statistiques générales', 14, 38);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [['Indicateur', 'Valeur', 'Détail']],
+      body: [
+        ['Total détenus (système)', String(total), 'Ensemble des détenus enregistrés'],
+        ['Condamnés', String(convicted), `${convictedPercentage}% du total`],
+        ['Prévenus', String(pretrial), `${100 - convictedPercentage}% du total`],
+        ['Libérations ce mois', String(liberationsThisMonth), new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [30, 41, 59], fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      columnStyles: { 1: { fontStyle: 'bold', halign: 'center', cellWidth: 20 } },
+      margin: { left: 14, right: 14 },
+    });
+
+    // ── Contexte du filtre ──
+    const afterStats = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Liste filtrée : ${filterLabel}`, 14, afterStats);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    const subtitle = searchTerm
+      ? `Recherche : "${searchTerm}"  —  ${filteredDetenus.length} résultat(s)`
+      : `${filteredDetenus.length} détenu(s) dans cette catégorie`;
+    doc.text(subtitle, 14, afterStats + 6);
+
+    // ── Tableau des détenus filtrés ──
+    autoTable(doc, {
+      startY: afterStats + 10,
+      head: [['#', 'Nom complet', 'N° Écrou', 'Naissance', 'Incarcéré le', 'Libération', 'Établissement', 'Statut', 'Purgé']],
+      body: filteredDetenus.map((d, i) => [
+        i + 1,
+        `${d.first_name} ${d.last_name}`,
+        d.matricule_number ?? d.ecrouNumber ?? '—',
+        new Date(d.date_of_birth).toLocaleDateString('fr-FR'),
+        new Date(d.incarceration_date).toLocaleDateString('fr-FR'),
+        d.release_date ? new Date(d.release_date).toLocaleDateString('fr-FR') : '—',
+        d.prisonName,
+        d.status,
+        d.timeServed,
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [30, 41, 59], fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      didParseCell: (data) => {
+        if (data.column.index === 7 && data.section === 'body') {
+          const val = data.cell.raw as string;
+          if (val === 'Condamné') data.cell.styles.textColor = [185, 28, 28];
+          else if (val === 'Prévenu') data.cell.styles.textColor = [180, 83, 9];
+        }
+      },
+      margin: { left: 8, right: 8 },
+      styles: { overflow: 'linebreak' },
+      columnStyles: { 0: { cellWidth: 8 }, 7: { fontStyle: 'bold' } },
+    });
+
+    // ── Pied de page ──
+    const pageCount = doc.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Document confidentiel — Ne pas diffuser sans autorisation', 8, 290);
+      doc.text(`Page ${p} / ${pageCount}`, 202, 290, { align: 'right' });
+    }
+
+    doc.save(`detenus-${statusFilter === 'all' ? 'tous' : statusFilter.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }, [filteredDetenus, filterLabel, statusFilter, searchTerm, statistics]);
+
 
   // Error handling
   if (isError) {
@@ -143,15 +250,81 @@ export const InmateListPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+
+      {/* ── Modal de filtre rapide ── */}
+      {showFilterModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowFilterModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-slate-800 mb-2 text-center">
+              Afficher les détenus
+            </h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              Sélectionnez une catégorie pour filtrer la liste
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => selectFilter('all')}
+                className="w-full py-3 px-5 rounded-xl bg-slate-700 text-white font-semibold text-base hover:bg-slate-800 transition-colors flex items-center justify-between"
+              >
+                <span>Tous les détenus</span>
+                <span className="text-sm font-normal opacity-70">{tableRows.length} détenus</span>
+              </button>
+              <button
+                onClick={() => selectFilter('Condamné')}
+                className="w-full py-3 px-5 rounded-xl bg-red-600 text-white font-semibold text-base hover:bg-red-700 transition-colors flex items-center justify-between"
+              >
+                <span>Condamnés</span>
+                <span className="text-sm font-normal opacity-70">
+                  {tableRows.filter(d => d.status === 'Condamné').length} détenus
+                </span>
+              </button>
+              <button
+                onClick={() => selectFilter('Prévenu')}
+                className="w-full py-3 px-5 rounded-xl bg-amber-500 text-white font-semibold text-base hover:bg-amber-600 transition-colors flex items-center justify-between"
+              >
+                <span>Prévenus</span>
+                <span className="text-sm font-normal opacity-70">
+                  {tableRows.filter(d => d.status === 'Prévenu').length} détenus
+                </span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowFilterModal(false)}
+              className="mt-5 w-full text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Ignorer et afficher tout
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Gestion des détenus</h2>
-        <button 
-          onClick={openFormDetenu}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          disabled={createMutation.isPending || isLoadingPrisons}
-        >
-          {createMutation.isPending ? 'Création...' : 'Ajouter un nouveau détenu'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={generateReport}
+            disabled={isLoading || filteredDetenus.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            Générer Rapport PDF
+          </button>
+          <button
+            onClick={openFormDetenu}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={createMutation.isPending || isLoadingPrisons}
+          >
+            {createMutation.isPending ? 'Création...' : 'Ajouter un nouveau détenu'}
+          </button>
+        </div>
       </div>
 
       {/* Table Section */}
