@@ -5,6 +5,7 @@ import { useAuthStore } from "./store/auth.store";
 import { User } from "./types/user.types";
 import { decodeToken } from "./utils/decodeToken";
 import { broadcastSession, onSessionMessage, withRefreshLock } from "./utils/sessionSync";
+import { useNoticeStore } from "../../shared/notifications/notice.store";
 
 // Rafraîchit un peu avant l'expiration de l'access token (Keycloak : 5 min par défaut)
 const REFRESH_MARGIN_MS = 30_000;
@@ -71,6 +72,7 @@ export const endLocalSession = (): void => {
   clearRefreshTimer();
   useAuthStore.getState().clearAuth();
   queryClient.clear();
+  useNoticeStore.getState().clear();
 };
 
 // Déconnexion complète : révocation côté serveur, puis tous les onglets.

@@ -4,6 +4,7 @@ import { LogOut, UserCircle } from 'lucide-react';
 import { Sidebar } from '../sidebar/Sidebar';
 import { useAuthStore } from '../../features/auth/store/auth.store';
 import { useLogout } from '../../features/auth/hooks/useLogout';
+import { NoticeBanner } from '../../shared/notifications/NoticeBanner';
 
 
 interface LayoutProps {
@@ -49,6 +50,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </button>
           </header>
           <main className="p-6">
+            {/* Messages globaux de l'intercepteur API (403, etc.) */}
+            <NoticeBanner />
             {children ? children : <Outlet />} {/* Support both layouts */}
           </main>
         </div>

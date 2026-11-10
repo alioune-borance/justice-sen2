@@ -2,16 +2,6 @@ import React from "react";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 import { RelativeRequestsPanel } from "../../features/proches/components/RelativeRequestsPanel";
 
-interface MeLink {
-  id: number;
-  type: "relative" | "judicial";
-  prisoner_id: number | null;
-  prisoner_name: string | null;
-  status?: string;
-  function_label?: string;
-  case_reference?: string;
-}
-
 const UPCOMING: Record<string, string[]> = {
   PROCHE_REFERENT: [
     "Déposer une demande de visite avec ses pièces justificatives",
@@ -28,7 +18,7 @@ const UPCOMING: Record<string, string[]> = {
 export const WelcomePage: React.FC = () => {
   const { user, role } = usePermissions();
   const items = (role && UPCOMING[role]) || [];
-  const links = ((user?.links ?? []) as MeLink[]).filter((l) => l.prisoner_id !== null);
+  const links = (user?.links ?? []).filter((l) => l.prisoner_id !== null);
 
   return (
     <div className="space-y-6 max-w-4xl">

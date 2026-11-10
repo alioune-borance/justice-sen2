@@ -16,43 +16,36 @@ import {
   Building2,
 } from 'lucide-react';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
-import { Permission, Role } from '../../features/auth/types/user.types';
+import { ROUTE_ACCESS, RoutePath } from '../../features/auth/config/rbac';
 
 interface NavItem {
-  path: string;
+  // '/' : accueil, ouvert à tous ; sinon un chemin de ROUTE_ACCESS (même règle que la route)
+  path: '/' | RoutePath;
   label: string;
   icon: React.ReactNode;
-  // Entrée affichée si l'utilisateur a l'une de ces permissions (GET auth/me/)
-  anyOf?: Permission[];
-  // Écrans maquettes : rôles autorisés
-  roles?: Role[];
 }
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Tableau de bord', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { path: '/detenus', label: 'Gestion des détenus', icon: <Users className="h-5 w-5" />, anyOf: ['prisoners:read'] },
-  { path: '/visits', label: 'Visites', icon: <Calendar className="h-5 w-5" />, anyOf: ['visits:read'] },
-  { path: '/transfers', label: 'Transferts', icon: <FileText className="h-5 w-5" />, anyOf: ['transfers:read', 'exits:read'] },
-  { path: '/incidents', label: 'Incidents', icon: <AlertTriangle className="h-5 w-5" />, anyOf: ['disciplinary_records:read'] },
-  { path: '/infirmerie', label: 'Infirmerie', icon: <Stethoscope className="h-5 w-5" />, anyOf: ['health_records:read'] },
-  { path: '/proches', label: 'Proches à valider', icon: <HeartHandshake className="h-5 w-5" />, anyOf: ['relative_links:validate'] },
-  { path: '/users', label: 'Utilisateurs', icon: <UserCog className="h-5 w-5" />, anyOf: ['users:read'] },
-  { path: '/affectations', label: 'Affectations judiciaires', icon: <Gavel className="h-5 w-5" />, anyOf: ['judicial_assignments:read'] },
-  { path: '/etablissements', label: 'Établissements', icon: <Building2 className="h-5 w-5" />, anyOf: ['prisons:create', 'prisons:update'] },
-  { path: '/security', label: 'Sécurité', icon: <Shield className="h-5 w-5" />, roles: ['SUPER_ADMIN'] },
-  { path: '/settings', label: 'Paramètres', icon: <Settings className="h-5 w-5" />, roles: ['SUPER_ADMIN'] },
+  { path: '/detenus', label: 'Gestion des détenus', icon: <Users className="h-5 w-5" /> },
+  { path: '/visits', label: 'Visites', icon: <Calendar className="h-5 w-5" /> },
+  { path: '/transfers', label: 'Transferts', icon: <FileText className="h-5 w-5" /> },
+  { path: '/incidents', label: 'Incidents', icon: <AlertTriangle className="h-5 w-5" /> },
+  { path: '/infirmerie', label: 'Infirmerie', icon: <Stethoscope className="h-5 w-5" /> },
+  { path: '/proches', label: 'Proches à valider', icon: <HeartHandshake className="h-5 w-5" /> },
+  { path: '/users', label: 'Utilisateurs', icon: <UserCog className="h-5 w-5" /> },
+  { path: '/affectations', label: 'Affectations judiciaires', icon: <Gavel className="h-5 w-5" /> },
+  { path: '/etablissements', label: 'Établissements', icon: <Building2 className="h-5 w-5" /> },
+  { path: '/security', label: 'Sécurité', icon: <Shield className="h-5 w-5" /> },
+  { path: '/settings', label: 'Paramètres', icon: <Settings className="h-5 w-5" /> },
 ];
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
-  const { user, canAny } = usePermissions();
+  const { user, allows } = usePermissions();
 
   // Masquage d'affichage seulement : le backend filtre les données et refuse les actions
-  const navItems = NAV_ITEMS.filter((item) => {
-    if (item.anyOf && !canAny(item.anyOf)) return false;
-    if (item.roles && user?.rbac_enforced && !(user.role && item.roles.includes(user.role))) return false;
-    return true;
-  });
+  const navItems = NAV_ITEMS.filter((item) => item.path === '/' || allows(ROUTE_ACCESS[item.path]));
   const title = user?.prison?.name ?? (user?.scope.type === 'national' ? 'Niveau national' : 'Gestion pénitentiaire');
 
   return (

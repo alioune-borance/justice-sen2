@@ -14,8 +14,9 @@ import { Settings } from '../../components/Settings';
 import { GenericDashboard } from '../../components/GenericDashboard';
 
 import { RequireAuth } from "../../features/auth/components/RequireAuth";
-import { RequirePermission } from "../../features/auth/components/RequirePermission";
-import { Permission, Role } from "../../features/auth/types/user.types";
+import { ProtectedRoute, FORBIDDEN_PATH } from "../../features/auth/components/ProtectedRoute";
+import { RoutePath } from "../../features/auth/config/rbac";
+import { ForbiddenPage } from "../../pages/errors/ForbiddenPage";
 import { LoginPage } from "../../pages/login/LoginPage";
 import { AuthBootstrap } from '../../features/auth/components/AuthBootstrap';
 import { VisiteListPage } from '../../pages/visites/VisitePage';
@@ -38,15 +39,10 @@ import { AffectationsPage } from '../../pages/affectations/AffectationsPage';
 import { EtablissementsPage } from '../../pages/prisons/EtablissementsPage';
 import { RegisterPage } from '../../pages/register/RegisterPage';
 
-// Garde d'affichage : le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé
-const guard = (perm: Permission | Permission[], element: React.ReactNode) =>
-  Array.isArray(perm)
-    ? <RequirePermission anyOf={perm}>{element}</RequirePermission>
-    : <RequirePermission perm={perm}>{element}</RequirePermission>;
-
-// Écrans maquettes (données statiques, sans API) : réservés au super administrateur
-const SUPER_ADMIN_ONLY: Role[] = ['SUPER_ADMIN'];
-const mockup = (element: React.ReactNode) => <RequirePermission roles={SUPER_ADMIN_ONLY}>{element}</RequirePermission>;
+// Garde d'affichage : la règle de chaque chemin est dans features/auth/config/rbac.ts (ROUTE_ACCESS).
+// Le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé.
+const guard = (path: RoutePath, element: React.ReactNode) =>
+  <ProtectedRoute path={path}>{element}</ProtectedRoute>;
 
 export const router = createBrowserRouter([
   // 🔓 ROUTES PUBLIQUES
@@ -83,97 +79,102 @@ export const router = createBrowserRouter([
               },
               {
                 path: "prison",
-                element: guard('prisoners:read', <Dashboard />),
+                element: guard("/prison", <Dashboard />),
               },
               {
                 path: "generic-dashboard",
-                element: mockup(<GenericDashboard />),
+                element: guard("/generic-dashboard", <GenericDashboard />),
               },
               {
                 path: "detenus",
                 children: [
-                  { index: true, element: guard('prisoners:read', <InmateListPage />) },
-                  { path: ":id", element: guard('prisoners:read', <InmateDetailPage />) },
-                  { path: "new", element: guard('prisoners:create', <DetenuFormPage />) },
-                  { path: "update/:id", element: guard('prisoners:update', <DetenuFormPage />) },
+                  { index: true, element: guard("/detenus", <InmateListPage />) },
+                  { path: ":id", element: guard("/detenus/:id", <InmateDetailPage />) },
+                  { path: "new", element: guard("/detenus/new", <DetenuFormPage />) },
+                  { path: "update/:id", element: guard("/detenus/update/:id", <DetenuFormPage />) },
                 ],
               },
               {
                 path: "visits",
                 children: [
-                  { index: true, element: guard('visits:read', <VisiteListPage />) },
-                  { path: "new", element: guard('visits:create', <VisiteFormPage />) },
-                  { path: "update/:id", element: guard('visits:update', <VisiteFormPage />) },
-                  { path: ":id", element: guard('visits:read', <VisiteDetailPage />) },
+                  { index: true, element: guard("/visits", <VisiteListPage />) },
+                  { path: "new", element: guard("/visits/new", <VisiteFormPage />) },
+                  { path: "update/:id", element: guard("/visits/update/:id", <VisiteFormPage />) },
+                  { path: ":id", element: guard("/visits/:id", <VisiteDetailPage />) },
                 ],
               },
               {
                 path: "transfers",
                 children: [
-                  { index: true, element: guard(['transfers:read', 'exits:read'], <TransfertListPage />) },
-                  { path: "new", element: guard('transfers:create', <TransfertFormPage />) },
-                  { path: "update/:id", element: guard('transfers:update', <TransfertFormPage />) },
-                  { path: "sorties/new", element: guard('exits:create', <SortieFormPage />) },
-                  { path: "sorties/update/:id", element: guard('exits:update', <SortieFormPage />) },
-                  { path: ":id", element: guard('transfers:read', <TransfertDetailPage />) },
+                  { index: true, element: guard("/transfers", <TransfertListPage />) },
+                  { path: "new", element: guard("/transfers/new", <TransfertFormPage />) },
+                  { path: "update/:id", element: guard("/transfers/update/:id", <TransfertFormPage />) },
+                  { path: "sorties/new", element: guard("/transfers/sorties/new", <SortieFormPage />) },
+                  { path: "sorties/update/:id", element: guard("/transfers/sorties/update/:id", <SortieFormPage />) },
+                  { path: ":id", element: guard("/transfers/:id", <TransfertDetailPage />) },
                 ],
               },
               {
                 path: "pardons",
-                element: mockup(<PresidentialPardons />),
+                element: guard("/pardons", <PresidentialPardons />),
               },
               {
                 path: "reinsertion",
-                element: mockup(<ReinsertionManagement />),
+                element: guard("/reinsertion", <ReinsertionManagement />),
               },
               {
                 path: "transfers-releases",
-                element: mockup(<TransfersReleases />),
+                element: guard("/transfers-releases", <TransfersReleases />),
               },
               {
                 path: "reports",
-                element: mockup(<ReportsManagement />),
+                element: guard("/reports", <ReportsManagement />),
               },
               {
                 path: "incidents",
                 children: [
-                  { index: true, element: guard('disciplinary_records:read', <IncidentsPage />) },
-                  { path: "new", element: guard('disciplinary_records:create', <IncidentFormPage />) },
-                  { path: "update/:id", element: guard('disciplinary_records:update', <IncidentFormPage />) },
+                  { index: true, element: guard("/incidents", <IncidentsPage />) },
+                  { path: "new", element: guard("/incidents/new", <IncidentFormPage />) },
+                  { path: "update/:id", element: guard("/incidents/update/:id", <IncidentFormPage />) },
                 ],
               },
               {
                 path: "infirmerie",
                 children: [
-                  { index: true, element: guard('health_records:read', <InfirmeriePage />) },
-                  { path: "new", element: guard('health_records:create', <InfirmerieFormPage />) },
-                  { path: "update/:id", element: guard('health_records:update', <InfirmerieFormPage />) },
+                  { index: true, element: guard("/infirmerie", <InfirmeriePage />) },
+                  { path: "new", element: guard("/infirmerie/new", <InfirmerieFormPage />) },
+                  { path: "update/:id", element: guard("/infirmerie/update/:id", <InfirmerieFormPage />) },
                 ],
               },
               {
                 path: "security",
-                element: mockup(<SecurityDashboard />),
+                element: guard("/security", <SecurityDashboard />),
               },
               {
                 path: "users",
-                element: guard('users:read', <UsersPage />),
+                element: guard("/users", <UsersPage />),
               },
               {
                 path: "proches",
-                element: guard('relative_links:validate', <ProchesValidationPage />),
+                element: guard("/proches", <ProchesValidationPage />),
               },
               {
                 path: "affectations",
-                element: guard('judicial_assignments:read', <AffectationsPage />),
+                element: guard("/affectations", <AffectationsPage />),
               },
               {
                 // Création : SUPER_ADMIN ; modification : SUPER_ADMIN ou ADMIN_PRISON (le sien)
                 path: "etablissements",
-                element: guard(['prisons:create', 'prisons:update'], <EtablissementsPage />),
+                element: guard("/etablissements", <EtablissementsPage />),
               },
               {
                 path: "settings",
-                element: mockup(<Settings />),
+                element: guard("/settings", <Settings />),
+              },
+              // 403 : écran refusé par ProtectedRoute
+              {
+                path: FORBIDDEN_PATH.slice(1),
+                element: <ForbiddenPage />,
               },
               // 404 PROTÉGÉ
               {

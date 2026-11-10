@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { LogOut, UserX } from "lucide-react";
 import { useAuthStore } from "../../features/auth/store/auth.store";
 import { useLogout } from "../../features/auth/hooks/useLogout";
-import { ACCESS_MESSAGES } from "../../features/auth/constants/roles";
+import { ACCESS_MESSAGES } from "../../features/auth/config/rbac";
 import { RelativeRequestsPanel } from "../../features/proches/components/RelativeRequestsPanel";
 
 // Compte en attente / refusé / désactivé / sans rôle : explication + déconnexion

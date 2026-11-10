@@ -308,11 +308,21 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - jeton CSRF obtenu par `GET auth/csrf/` et envoyé en `X-CSRFToken` sur les requêtes d'écriture ;
   - `features/auth/session.ts` : refresh proactif avant expiration, refresh unique (Web Locks + `BroadcastChannel` entre onglets), déconnexion propagée à tous les onglets, `queryClient.clear()`.
 - **Utilisateur** : `GET auth/me/` (`features/auth/types/user.types.ts`) fournit `role`, `prison`, `scope`, `permissions` (`"<ressource>:<read|create|update|delete|validate|complete>"`), `access` et `rbac_enforced`. Les rôles ne sont **plus** lus dans le JWT.
+- **Configuration unique** : `features/auth/config/rbac.ts`. Ce fichier est un miroir d'affichage de `sgpauth/rbac/policy.py`. Il contient :
+  - `ROLES`, `ROLE_LABELS`, et les familles `PRISON_ROLES`, `NATIONAL_READ_ONLY_ROLES`, `PRISONER_LINKED_ROLES` ;
+  - `ROUTE_ACCESS` : règle `{perm | anyOf | roles}` par chemin, lue à la fois par le routeur et par le menu ;
+  - `ACTIONS` : action nommée → permission ;
+  - `HOME_REDIRECT`, les codes et messages de compte, `FORBIDDEN_MESSAGE` et `SESSION_EXPIRED_MESSAGE`.
 - **Droits d'affichage** (le backend reste seul juge) :
-  - `usePermissions()` → `can('transfers:validate')`, `canAny([...])`, `isMyPrison(prisonId)` ;
-  - `<Can perm=… when=…>` masque un bouton ;
-  - `RequirePermission` garde chaque route dans `AppRouter.tsx` (page 403 sinon) ;
-  - le menu (`Sidebar.tsx`) est filtré par permission ; les écrans maquettes sont réservés au SUPER_ADMIN.
+  - `usePermissions()` → `can('transfers:validate')`, `canAny([...])`, `canDo('transfer.decide')`, `allows(règle)`, `isMyPrison(prisonId)` ;
+  - `useRole()` → `role`, `label`, `is(...)`, `isPrisonStaff`, `isNationalReadOnly`, `isRelative`, `isJudicialActor` (affichage uniquement, jamais pour un droit) ;
+  - `<Can perm=… | anyOf=… | action=… when=…>` masque un bouton ;
+  - `ProtectedRoute` (via `guard('<chemin>', …)` dans `AppRouter.tsx`) applique `ROUTE_ACCESS[chemin]` et redirige vers `/403` (`pages/errors/ForbiddenPage.tsx`) ;
+  - le menu (`Sidebar.tsx`) est filtré avec les mêmes règles ; les écrans maquettes sont réservés au SUPER_ADMIN.
+- **Intercepteur** (`shared/api/axiosInstance.ts`) :
+  - **401** : refresh puis nouvel essai une fois. Si le refresh échoue, ou si la requête rejouée reçoit encore 401, la session locale est effacée et `/login` affiche « session expirée » ;
+  - **403 sur une action** : bandeau global `FORBIDDEN_MESSAGE` (`shared/notifications/`), sans déconnexion. L'option axios `silentForbidden: true` le désactive quand la page affiche elle-même l'erreur ;
+  - **403 `account_*`** : redirection vers `/compte`.
 - **Comptes bloqués** (`access` ≠ `granted`, ou 403 `account_*` d'axios) : `RequireAuth` redirige vers `/compte` (`pages/errors/AccountStatusPage.tsx`).
 - **Accueil** (`pages/home/HomePage.tsx`) : PERSONNEL_SANTE → `/infirmerie` ; proche et acteur judiciaire → `WelcomePage` (détenus liés ou affectés, demandes du proche) ; sinon tableau de bord.
 - **Comptes et proches (phase 5)** :
@@ -338,7 +348,7 @@ Déduites des parties les plus récentes et cohérentes du code (`features/` + `
 - Composants fonctionnels `React.FC` en **export nommé** (`export const XPage`), Tailwind inline, icônes lucide.
 - Libellés UI en français ; afficher les erreurs API via `getApiErrorMessages` (messages stables pour 403, 404 et 429).
 - **Droits** :
-  - toute nouvelle route est enveloppée d'un `guard('<ressource>:<capacité>', …)` dans `AppRouter.tsx`, et toute entrée de menu déclare `anyOf` ;
+  - toute nouvelle route déclare sa règle dans `ROUTE_ACCESS` (`features/auth/config/rbac.ts`) et est enveloppée de `guard('<chemin>', …)` dans `AppRouter.tsx` ; l'entrée de menu reprend le même chemin ;
   - tout bouton d'action est enveloppé de `<Can perm=… when=…>`, avec `when={isMyPrison(objet.prison)}` pour les objets d'une prison ;
   - les listes dont la lecture n'est pas accordée à tous passent `enabled: can('<ressource>:read')` à leur hook ;
   - les champs gérés par le serveur (`status`, `authorized_by`, `prison` imposée…) ne sont pas envoyés.
