@@ -345,6 +345,12 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - pages : `pages/demandes-visite/` ;
   - le proche dépose une demande (multipart, demande manuscrite obligatoire, au plus 2 autres visiteurs, détenus pris dans les liens `ACTIF` de `/me`), en suit l'état et l'historique, répond à « pièces à compléter » (dépôt puis `resubmit/`) et télécharge son permis ;
   - les fichiers passent toujours par `shared/api/download.ts` (`downloadFile`, requête authentifiée en blob), jamais par une URL media.
+- **Circuit judiciaire (gestionnaires et acteur judiciaire)** :
+  - `/demandes` (`DemandesATraiterPage`) : file des demandes du circuit de l'utilisateur, filtrée par état (« À traiter » = soumises et en vérification) ;
+  - `/demandes/:id` (`DemandeVerificationPage`) : vérification pièce par pièce (conforme ou rejetée avec commentaire), prise en charge, demande de complément, validation (bloquée tant que `problemes_validation` n'est pas vide) et refus motivé ;
+  - `/permis` (`pages/permis/PermisPage.tsx`) : permis émis (filtre par état), PDF et révocation motivée ; le proche y voit ses permis ;
+  - `/decisions` (`pages/decisions/`) : décisions par détenu (`?detenu=&historique=1` affiche les versions corrigées), saisie et correction en version n+1 (PDF, effet proposé pré-rempli selon le type), application ou rejet de l'effet par l'AP ou le SP ;
+  - la fonction de l'acteur judiciaire (juge, greffier, avocat) restreint l'affichage via `usePermissions().canOnPrisoner(perm, détenu)` et `JUDICIAL_FUNCTION_GRANTS`, lus depuis les liens de `/me`. Cette restriction s'applique même en mode observation, comme côté backend.
 - **Mode observation** : tant que le backend a `RBAC_ENFORCED=False`, `/me` renvoie toutes les permissions sauf le médical. L'interface montre donc tout, sauf l'infirmerie (réservée à PERSONNEL_SANTE).
 
 ---

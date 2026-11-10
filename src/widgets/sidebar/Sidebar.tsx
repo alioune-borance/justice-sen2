@@ -15,6 +15,9 @@ import {
   Gavel,
   Building2,
   CalendarCheck,
+  ClipboardList,
+  FileBadge,
+  Scale,
 } from 'lucide-react';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { useRole } from '../../features/auth/hooks/useRole';
@@ -38,6 +41,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/incidents', label: 'Incidents', icon: <AlertTriangle className="h-5 w-5" /> },
   { path: '/infirmerie', label: 'Infirmerie', icon: <Stethoscope className="h-5 w-5" /> },
   { path: '/mes-demandes', label: 'Mes demandes de visite', icon: <CalendarCheck className="h-5 w-5" /> },
+  { path: '/demandes', label: 'Demandes de visite', icon: <ClipboardList className="h-5 w-5" /> },
+  { path: '/permis', label: 'Permis de visite', icon: <FileBadge className="h-5 w-5" /> },
+  { path: '/decisions', label: 'Décisions de justice', icon: <Scale className="h-5 w-5" /> },
   { path: '/proches', label: 'Proches à valider', icon: <HeartHandshake className="h-5 w-5" /> },
   { path: '/users', label: 'Utilisateurs', icon: <UserCog className="h-5 w-5" /> },
   { path: '/affectations', label: 'Affectations judiciaires', icon: <Gavel className="h-5 w-5" /> },

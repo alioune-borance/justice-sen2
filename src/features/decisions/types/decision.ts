@@ -1,0 +1,102 @@
+// Décision de justice (GET court-decisions/). Jamais modifiée ni supprimée : une correction crée la version n+1.
+export type TypeDecision =
+  | "MANDAT_DE_DEPOT"
+  | "MISE_EN_LIBERTE"
+  | "RENVOI"
+  | "JUGEMENT"
+  | "CONDAMNATION"
+  | "ACQUITTEMENT"
+  | "NON_LIEU"
+  | "APPEL"
+  | "AUTRE";
+
+export type EtatEffet = "AUCUN" | "PROPOSE" | "APPLIQUE" | "ECARTE";
+// Valeurs de Prisoner.status côté backend ("" = aucun effet)
+export type StatutPropose = "" | "Prévenu" | "Condamné" | "Libéré";
+
+export interface DecisionJustice {
+  id: number;
+  detenu: number;
+  detenu_nom: string;
+  detenu_matricule: string | null;
+  prison: number;
+  prison_nom: string;
+  auteur: number;
+  auteur_nom: string | null;
+  type: TypeDecision;
+  type_label: string;
+  date_decision: string;
+  juridiction: string;
+  reference_affaire: string;
+  resume: string;
+  a_document: boolean;
+  nom_document: string;
+  version: number;
+  version_precedente: number | null;
+  version_suivante: number | null;
+  motif_correction: string;
+  est_courante: boolean;
+  statut_propose: StatutPropose | null;
+  peine_proposee: number | null;
+  date_liberation_proposee: string | null;
+  effet_etat: EtatEffet;
+  effet_etat_label: string;
+  effet_traite_par_nom: string | null;
+  effet_traite_le: string | null;
+  effet_motif: string;
+  cree_le: string;
+}
+
+export interface DecisionInput {
+  type: TypeDecision;
+  date_decision: string;
+  juridiction: string;
+  reference_affaire?: string;
+  resume: string;
+  document?: File | null;
+  statut_propose?: StatutPropose;
+  peine_proposee?: number | null;
+  date_liberation_proposee?: string | null;
+}
+
+export type CreateDecisionDto = DecisionInput & { detenu: number };
+export type CorrectDecisionDto = Partial<DecisionInput> & { motif_correction: string };
+
+export type DecisionFilters = { detenu?: number; type?: string; effet?: string; historique?: boolean };
+
+export const TYPES_DECISION: { value: TypeDecision; label: string }[] = [
+  { value: "MANDAT_DE_DEPOT", label: "Mandat de dépôt" },
+  { value: "MISE_EN_LIBERTE", label: "Mise en liberté" },
+  { value: "RENVOI", label: "Renvoi" },
+  { value: "JUGEMENT", label: "Jugement" },
+  { value: "CONDAMNATION", label: "Condamnation" },
+  { value: "ACQUITTEMENT", label: "Acquittement" },
+  { value: "NON_LIEU", label: "Non-lieu" },
+  { value: "APPEL", label: "Appel" },
+  { value: "AUTRE", label: "Autre décision" },
+];
+
+// Effet proposé par défaut selon le type (même table que justice/models.py, modifiable à la saisie)
+export const DEFAULT_EFFECT: Partial<Record<TypeDecision, StatutPropose>> = {
+  MANDAT_DE_DEPOT: "Prévenu",
+  CONDAMNATION: "Condamné",
+  MISE_EN_LIBERTE: "Libéré",
+  ACQUITTEMENT: "Libéré",
+  NON_LIEU: "Libéré",
+};
+
+export const STATUTS_PROPOSES: { value: StatutPropose; label: string }[] = [
+  { value: "", label: "Aucun effet sur le statut" },
+  { value: "Prévenu", label: "Prévenu" },
+  { value: "Condamné", label: "Condamné" },
+  { value: "Libéré", label: "Libéré" },
+];
+
+export const EFFET_STYLES: Record<EtatEffet, string> = {
+  AUCUN: "bg-gray-100 text-gray-600",
+  PROPOSE: "bg-amber-100 text-amber-800",
+  APPLIQUE: "bg-green-100 text-green-800",
+  ECARTE: "bg-gray-200 text-gray-700",
+};
+
+export const MAX_DECISION_BYTES = 10 * 1024 * 1024;

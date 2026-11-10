@@ -41,6 +41,11 @@ import { RegisterPage } from '../../pages/register/RegisterPage';
 import { MesDemandesPage } from '../../pages/demandes-visite/MesDemandesPage';
 import { DemandeVisiteFormPage } from '../../pages/demandes-visite/DemandeVisiteFormPage';
 import { MaDemandeDetailPage } from '../../pages/demandes-visite/MaDemandeDetailPage';
+import { DemandesATraiterPage } from '../../pages/demandes-visite/DemandesATraiterPage';
+import { DemandeVerificationPage } from '../../pages/demandes-visite/DemandeVerificationPage';
+import { PermisPage } from '../../pages/permis/PermisPage';
+import { DecisionsPage } from '../../pages/decisions/DecisionsPage';
+import { DecisionFormPage } from '../../pages/decisions/DecisionFormPage';
 
 // Garde d'affichage : la règle de chaque chemin est dans features/auth/config/rbac.ts (ROUTE_ACCESS).
 // Le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé.
@@ -177,6 +182,26 @@ export const router = createBrowserRouter([
                   { index: true, element: guard("/mes-demandes", <MesDemandesPage />) },
                   { path: "new", element: guard("/mes-demandes/new", <DemandeVisiteFormPage />) },
                   { path: ":id", element: guard("/mes-demandes/:id", <MaDemandeDetailPage />) },
+                ],
+              },
+              {
+                // Gestionnaires : acteur judiciaire (prévenus affectés), AP / SP (condamnés de la prison)
+                path: "demandes",
+                children: [
+                  { index: true, element: guard("/demandes", <DemandesATraiterPage />) },
+                  { path: ":id", element: guard("/demandes/:id", <DemandeVerificationPage />) },
+                ],
+              },
+              {
+                path: "permis",
+                element: guard("/permis", <PermisPage />),
+              },
+              {
+                path: "decisions",
+                children: [
+                  { index: true, element: guard("/decisions", <DecisionsPage />) },
+                  { path: "new", element: guard("/decisions/new", <DecisionFormPage />) },
+                  { path: ":id/correct", element: guard("/decisions/:id/correct", <DecisionFormPage />) },
                 ],
               },
               {

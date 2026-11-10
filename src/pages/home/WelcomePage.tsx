@@ -14,6 +14,10 @@ import { RelativeRequestsPanel } from "../../features/proches/components/Relativ
 const SHORTCUTS: { path: RoutePath; label: string }[] = [
   { path: "/mes-demandes/new", label: "Demander un permis de visite" },
   { path: "/mes-demandes", label: "Suivre mes demandes" },
+  { path: "/permis", label: "Permis de visite" },
+  { path: "/demandes", label: "Demandes à traiter" },
+  { path: "/decisions/new", label: "Saisir une décision" },
+  { path: "/decisions", label: "Décisions de justice" },
 ];
 
 // Accueil « Mes détenus » des proches référents et des acteurs judiciaires

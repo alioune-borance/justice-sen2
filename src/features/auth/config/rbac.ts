@@ -87,6 +87,14 @@ export const ROUTE_ACCESS = {
   "/mes-demandes": { perm: "visit_requests:create" },
   "/mes-demandes/new": { perm: "visit_requests:create" },
   "/mes-demandes/:id": { perm: "visit_requests:create" },
+  // Gestionnaires des demandes : acteur judiciaire (circuit judiciaire), AP / SP (circuit pénitentiaire)
+  "/demandes": { anyOf: ["visit_requests:update", "visit_requests:validate"] },
+  "/demandes/:id": { anyOf: ["visit_requests:update", "visit_requests:validate"] },
+  // Permis : gestionnaires (révocation) et proche (ses permis) ; l'agent vérifie seulement
+  "/permis": { anyOf: ["visit_permits:validate", "visit_requests:create"] },
+  "/decisions": { perm: "court_decisions:read" },
+  "/decisions/new": { perm: "court_decisions:create" },
+  "/decisions/:id/correct": { perm: "court_decisions:update" },
   "/generic-dashboard": MOCKUP,
   "/pardons": MOCKUP,
   "/reinsertion": MOCKUP,
@@ -130,9 +138,33 @@ export const ACTIONS = {
   "prison.create": "prisons:create",
   "prison.update": "prisons:update",
   "visitRequest.create": "visit_requests:create",
+  "visitRequest.instruct": "visit_requests:update",
+  "visitRequest.decide": "visit_requests:validate",
+  "permit.revoke": "visit_permits:validate",
+  "decision.create": "court_decisions:create",
+  "decision.correct": "court_decisions:update",
+  "decision.applyEffect": "court_decisions:validate",
 } as const satisfies Record<string, Permission>;
 
 export type ActionName = keyof typeof ACTIONS;
+
+// ── Fonction de l'acteur judiciaire ────────────────────────────────────────────────────────────
+// Miroir de policy.JUDICIAL_FUNCTION_GRANTS : la fonction sur l'affectation du détenu (liens de /me)
+// restreint ce que le rôle permet. Juge : tout ; greffier : instruire et saisir ; avocat : lecture.
+export const JUDICIAL_FUNCTION_GRANTS: Record<string, Permission[]> = {
+  JUGE_INSTRUCTION: [
+    "visit_requests:read", "visit_requests:update", "visit_requests:validate",
+    "visit_permits:read", "visit_permits:validate",
+    "court_decisions:read", "court_decisions:create", "court_decisions:update",
+  ],
+  GREFFIER: [
+    "visit_requests:read", "visit_requests:update",
+    "visit_permits:read",
+    "court_decisions:read", "court_decisions:create", "court_decisions:update",
+  ],
+  AVOCAT: ["visit_requests:read", "visit_permits:read", "court_decisions:read"],
+};
+export const FUNCTION_RESTRICTED_RESOURCES = ["visit_requests", "visit_permits", "court_decisions"];
 
 // ── Accueil par rôle ───────────────────────────────────────────────────────────────────────────
 // Rôles redirigés vers un écran dédié dès la connexion (les autres : HomePage décide)

@@ -1,6 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { useAuthStore } from "../store/auth.store";
-import { ACTIONS, AccessRule, ActionName } from "../config/rbac";
+import {
+  ACTIONS,
+  AccessRule,
+  ActionName,
+  FUNCTION_RESTRICTED_RESOURCES,
+  JUDICIAL_FUNCTION_GRANTS,
+} from "../config/rbac";
 import { Permission, User } from "../types/user.types";
 
 // Une règle d'accès (config/rbac.ts) est-elle satisfaite par cet utilisateur ?
@@ -26,6 +32,20 @@ export const usePermissions = () => {
   const canDo = useCallback((action: ActionName) => granted.has(ACTIONS[action]), [granted]);
   const allows = useCallback((rule: AccessRule | undefined) => isAccessAllowed(user, rule), [user]);
 
+  // Permission sur un détenu précis : pour l'acteur judiciaire, la fonction de son affectation
+  // (juge, greffier, avocat) restreint le circuit judiciaire. Affichage seulement.
+  const canOnPrisoner = useCallback(
+    (permission: Permission, prisonerId: number | null | undefined) => {
+      if (!granted.has(permission)) return false;
+      // Le circuit judiciaire est appliqué par le backend même en mode observation
+      if (!user || user.role !== "ACTEUR_JUDICIAIRE") return true;
+      if (!FUNCTION_RESTRICTED_RESOURCES.includes(permission.split(":")[0])) return true;
+      const link = user.links.find((l) => l.type === "judicial" && l.prisoner_id === prisonerId);
+      return !!link && link.type === "judicial" && (JUDICIAL_FUNCTION_GRANTS[link.function] ?? []).includes(permission);
+    },
+    [granted, user]
+  );
+
   // L'objet appartient-il au périmètre d'écriture de l'utilisateur ? (national : toujours)
   const isMyPrison = useCallback(
     (prisonId: number | null | undefined) => {
@@ -36,5 +56,5 @@ export const usePermissions = () => {
     [user]
   );
 
-  return { user, role: user?.role ?? null, can, canAny, canDo, allows, isMyPrison };
+  return { user, role: user?.role ?? null, can, canAny, canDo, allows, canOnPrisoner, isMyPrison };
 };
