@@ -83,6 +83,10 @@ export const ROUTE_ACCESS = {
   "/affectations": { perm: "judicial_assignments:read" },
   // Création : SUPER_ADMIN ; modification : SUPER_ADMIN ou ADMIN_PRISON (le sien)
   "/etablissements": { anyOf: ["prisons:create", "prisons:update"] },
+  // Proche référent : ses demandes de visite (création = droit propre au proche)
+  "/mes-demandes": { perm: "visit_requests:create" },
+  "/mes-demandes/new": { perm: "visit_requests:create" },
+  "/mes-demandes/:id": { perm: "visit_requests:create" },
   "/generic-dashboard": MOCKUP,
   "/pardons": MOCKUP,
   "/reinsertion": MOCKUP,
@@ -125,6 +129,7 @@ export const ACTIONS = {
   "assignment.manage": "judicial_assignments:create",
   "prison.create": "prisons:create",
   "prison.update": "prisons:update",
+  "visitRequest.create": "visit_requests:create",
 } as const satisfies Record<string, Permission>;
 
 export type ActionName = keyof typeof ACTIONS;

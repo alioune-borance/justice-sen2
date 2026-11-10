@@ -11,7 +11,10 @@ import { Prison } from "../../features/prisons/types/prison";
 import { RelativeRequestsPanel } from "../../features/proches/components/RelativeRequestsPanel";
 
 // Raccourcis de l'accueil : affichés seulement si la route est accessible (même règle que le menu)
-const SHORTCUTS: { path: RoutePath; label: string }[] = [];
+const SHORTCUTS: { path: RoutePath; label: string }[] = [
+  { path: "/mes-demandes/new", label: "Demander un permis de visite" },
+  { path: "/mes-demandes", label: "Suivre mes demandes" },
+];
 
 // Accueil « Mes détenus » des proches référents et des acteurs judiciaires
 // (et accueil par défaut d'un compte sans accès aux détenus).

@@ -340,6 +340,11 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - `/affectations` : affectations judiciaires, gérées par le SA ;
   - `/inscription` (public) : inscription d'un proche ;
   - `features/proches/components/RelativeRequestsPanel.tsx` : demandes et dépôt de pièces du proche, aussi affiché sur `/compte` pendant l'attente de validation.
+- **Circuit des visites, côté proche (`/mes-demandes`)** :
+  - API : `features/demandes-visite/` (`visit-requests/`, `visit-request-documents/`) et `features/permis/` (`visit-permits/`) ;
+  - pages : `pages/demandes-visite/` ;
+  - le proche dépose une demande (multipart, demande manuscrite obligatoire, au plus 2 autres visiteurs, détenus pris dans les liens `ACTIF` de `/me`), en suit l'état et l'historique, répond à « pièces à compléter » (dépôt puis `resubmit/`) et télécharge son permis ;
+  - les fichiers passent toujours par `shared/api/download.ts` (`downloadFile`, requête authentifiée en blob), jamais par une URL media.
 - **Mode observation** : tant que le backend a `RBAC_ENFORCED=False`, `/me` renvoie toutes les permissions sauf le médical. L'interface montre donc tout, sauf l'infirmerie (réservée à PERSONNEL_SANTE).
 
 ---

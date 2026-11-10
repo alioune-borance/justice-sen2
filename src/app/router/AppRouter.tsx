@@ -38,6 +38,9 @@ import { ProchesValidationPage } from '../../pages/proches/ProchesValidationPage
 import { AffectationsPage } from '../../pages/affectations/AffectationsPage';
 import { EtablissementsPage } from '../../pages/prisons/EtablissementsPage';
 import { RegisterPage } from '../../pages/register/RegisterPage';
+import { MesDemandesPage } from '../../pages/demandes-visite/MesDemandesPage';
+import { DemandeVisiteFormPage } from '../../pages/demandes-visite/DemandeVisiteFormPage';
+import { MaDemandeDetailPage } from '../../pages/demandes-visite/MaDemandeDetailPage';
 
 // Garde d'affichage : la règle de chaque chemin est dans features/auth/config/rbac.ts (ROUTE_ACCESS).
 // Le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé.
@@ -166,6 +169,15 @@ export const router = createBrowserRouter([
                 // Création : SUPER_ADMIN ; modification : SUPER_ADMIN ou ADMIN_PRISON (le sien)
                 path: "etablissements",
                 element: guard("/etablissements", <EtablissementsPage />),
+              },
+              {
+                // Proche référent : demandes de visite et permis
+                path: "mes-demandes",
+                children: [
+                  { index: true, element: guard("/mes-demandes", <MesDemandesPage />) },
+                  { path: "new", element: guard("/mes-demandes/new", <DemandeVisiteFormPage />) },
+                  { path: ":id", element: guard("/mes-demandes/:id", <MaDemandeDetailPage />) },
+                ],
               },
               {
                 path: "settings",
