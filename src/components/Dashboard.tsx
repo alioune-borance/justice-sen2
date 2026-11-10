@@ -16,6 +16,7 @@ import autoTable from 'jspdf-autotable';
 import { useGetDetenus } from '../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../features/prisons/api/useGetPrison';
 import { useGetVisites } from '../features/visites/api/useGetVisite';
+import { usePermissions } from '../features/auth/hooks/usePermissions';
 import { Detenu } from '../features/detenus/types/detenu';
 import { Prison } from '../features/prisons/types/prison';
 import { Visite } from '../features/visites/types/visite';
@@ -152,7 +153,8 @@ const CrimeChart = () => {
 export const Dashboard: React.FC = () => {
   const { data: detenus = [], isLoading } = useGetDetenus();
   const { data: prisons = [] } = useGetPrisons();
-  const { data: visites = [] } = useGetVisites();
+  const { can } = usePermissions();
+  const { data: visites = [] } = useGetVisites({ enabled: can('visits:read') });
 
   const now = new Date();
 
@@ -194,7 +196,7 @@ export const Dashboard: React.FC = () => {
   const totalDetenus = detenus.length;
   const condamnes = detenus.filter((d: Detenu) => d.status === 'Condamné').length;
   const liberes = detenus.filter((d: Detenu) => d.status === 'Libéré').length;
-
+  console.log(condamnes);
   // Libérations ce mois
   // const now = new Date();
   // const liberationsThisMonth = detenus.filter((d: Detenu) => {

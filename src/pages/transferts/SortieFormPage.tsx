@@ -24,7 +24,6 @@ export const SortieFormPage: React.FC = () => {
     date: '',
     due_return_date: '',
     purpose: '',
-    authorized_by: '',
     notes: '',
   });
 
@@ -36,7 +35,6 @@ export const SortieFormPage: React.FC = () => {
         date: sortie.date ? sortie.date.split('T')[0] : '',
         due_return_date: sortie.due_return_date ? sortie.due_return_date.split('T')[0] : '',
         purpose: sortie.purpose || '',
-        authorized_by: sortie.authorized_by || '',
         notes: sortie.notes || '',
       });
     }
@@ -56,10 +54,9 @@ export const SortieFormPage: React.FC = () => {
       due_return_date: new Date(formData.due_return_date).toISOString(),
       actual_return_date: new Date(formData.due_return_date).toISOString(),
       purpose: formData.purpose,
-      authorized_by: formData.authorized_by,
       notes: formData.notes,
       is_returned: false,
-      status: 'PENDING',
+      // status / authorized_by / prison : gérés par le serveur (validation SUPERVISEUR / ADMIN)
     };
 
     try {
@@ -208,18 +205,10 @@ export const SortieFormPage: React.FC = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Autorisée par *</label>
-                    <input
-                      type="text"
-                      name="authorized_by"
-                      value={formData.authorized_by}
-                      onChange={handleChange}
-                      required
-                      placeholder="Nom de l'autorité"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+                  <p className="text-xs text-gray-500">
+                    La sortie sera soumise à la validation d'un superviseur ou d'un administrateur
+                    de l'établissement.
+                  </p>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>

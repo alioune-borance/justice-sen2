@@ -14,9 +14,9 @@ export const InfirmerieFormPage: React.FC = () => {
 
   const [prisonerId, setPrisonerId] = useState<string>('');
   const [record, setRecord] = useState<HealthRecord>({
-    condition_medical: '',
+    medical_condition: '',
     description: '',
-    date_diagnosis: new Date().toISOString().slice(0, 10),
+    date_of_diagnosis: new Date().toISOString().slice(0, 10),
   });
   const [errors, setErrors] = useState<{ prisoner?: string } & Partial<HealthRecord>>({});
 
@@ -31,9 +31,9 @@ export const InfirmerieFormPage: React.FC = () => {
   const validate = (): boolean => {
     const next: typeof errors = {};
     if (!prisonerId) next.prisoner = 'Veuillez sélectionner un détenu.';
-    if (!record.condition_medical.trim()) next.condition_medical = 'La condition médicale est obligatoire.';
+    if (!record.medical_condition.trim()) next.medical_condition = 'La condition médicale est obligatoire.';
     if (!record.description.trim()) next.description = 'La description est obligatoire.';
-    if (!record.date_diagnosis) next.date_diagnosis = 'La date de diagnostic est obligatoire.';
+    if (!record.date_of_diagnosis) next.date_of_diagnosis = 'La date de diagnostic est obligatoire.';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -45,9 +45,9 @@ export const InfirmerieFormPage: React.FC = () => {
       await addRecordMutation.mutateAsync({
         prisonerId: parseInt(prisonerId),
         record: {
-          condition_medical: record.condition_medical.trim(),
+          medical_condition: record.medical_condition.trim(),
           description: record.description.trim(),
-          date_diagnosis: record.date_diagnosis,
+          date_of_diagnosis: record.date_of_diagnosis,
         },
       });
       navigate('/infirmerie');
@@ -136,13 +136,13 @@ export const InfirmerieFormPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    name="condition_medical"
-                    value={record.condition_medical}
+                    name="medical_condition"
+                    value={record.medical_condition}
                     onChange={handleRecordChange}
                     placeholder="Ex : Hypertension, Fracture, Grippe…"
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
-                  {errors.condition_medical && <p className="text-red-500 text-xs mt-1">{errors.condition_medical}</p>}
+                  {errors.medical_condition && <p className="text-red-500 text-xs mt-1">{errors.medical_condition}</p>}
                 </div>
 
                 <div>
@@ -151,14 +151,14 @@ export const InfirmerieFormPage: React.FC = () => {
                   </label>
                   <input
                     type="date"
-                    name="date_diagnosis"
-                    value={record.date_diagnosis}
+                    name="date_of_diagnosis"
+                    value={record.date_of_diagnosis}
                     onChange={handleRecordChange}
                     max={new Date().toISOString().slice(0, 10)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
-                  {errors.date_diagnosis && (
-                    <p className="text-red-500 text-xs mt-1">{errors.date_diagnosis}</p>
+                  {errors.date_of_diagnosis && (
+                    <p className="text-red-500 text-xs mt-1">{errors.date_of_diagnosis}</p>
                   )}
                 </div>
               </div>

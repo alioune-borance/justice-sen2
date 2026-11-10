@@ -1,4 +1,5 @@
 // router/router.tsx
+import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from '../../widgets/layout/Layout';
 import { Dashboard } from '../../components/Dashboard';
@@ -9,11 +10,12 @@ import { SecurityDashboard } from '../../components/SecurityDashboard';
 import { ReinsertionManagement } from '../../components/ReinsertionManagement';
 import { TransfersReleases } from '../../components/TransfersReleases';
 import { ReportsManagement } from '../../components/ReportsManagement';
-import { Users } from '../../components/Users';
 import { Settings } from '../../components/Settings';
 import { GenericDashboard } from '../../components/GenericDashboard';
 
 import { RequireAuth } from "../../features/auth/components/RequireAuth";
+import { RequirePermission } from "../../features/auth/components/RequirePermission";
+import { Permission, Role } from "../../features/auth/types/user.types";
 import { LoginPage } from "../../pages/login/LoginPage";
 import { AuthBootstrap } from '../../features/auth/components/AuthBootstrap';
 import { VisiteListPage } from '../../pages/visites/VisitePage';
@@ -28,6 +30,22 @@ import { IncidentsPage } from '../../pages/incidents/IncidentsPage';
 import { IncidentFormPage } from '../../pages/incidents/IncidentFormPage';
 import { InfirmeriePage } from '../../pages/infirmerie/InfirmeriePage';
 import { InfirmerieFormPage } from '../../pages/infirmerie/InfirmerieFormPage';
+import { HomePage } from '../../pages/home/HomePage';
+import { AccountStatusPage } from '../../pages/errors/AccountStatusPage';
+import { UsersPage } from '../../pages/users/UsersPage';
+import { ProchesValidationPage } from '../../pages/proches/ProchesValidationPage';
+import { AffectationsPage } from '../../pages/affectations/AffectationsPage';
+import { RegisterPage } from '../../pages/register/RegisterPage';
+
+// Garde d'affichage : le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé
+const guard = (perm: Permission | Permission[], element: React.ReactNode) =>
+  Array.isArray(perm)
+    ? <RequirePermission anyOf={perm}>{element}</RequirePermission>
+    : <RequirePermission perm={perm}>{element}</RequirePermission>;
+
+// Écrans maquettes (données statiques, sans API) : réservés au super administrateur
+const SUPER_ADMIN_ONLY: Role[] = ['SUPER_ADMIN'];
+const mockup = (element: React.ReactNode) => <RequirePermission roles={SUPER_ADMIN_ONLY}>{element}</RequirePermission>;
 
 export const router = createBrowserRouter([
   // 🔓 ROUTES PUBLIQUES
@@ -35,145 +53,121 @@ export const router = createBrowserRouter([
     path: "/login",
     element: <LoginPage />,
   },
+  // Inscription d'un proche référent (compte validé ensuite par l'établissement)
+  {
+    path: "/inscription",
+    element: <RegisterPage />,
+  },
 
   // 🔐 ROUTES PROTÉGÉES
   {
     element: <AuthBootstrap />,
     children: [
-    
+
       {
         element: <RequireAuth />,
         children: [
+          // Compte en attente / refusé / désactivé / sans rôle
+          {
+            path: "/compte",
+            element: <AccountStatusPage />,
+          },
           {
             path: "/",
             element: <Layout />,
             children: [
               {
                 index: true,
-                element: <Dashboard />,
+                element: <HomePage />,
               },
               {
                 path: "prison",
-                element: <Dashboard />,
+                element: guard('prisoners:read', <Dashboard />),
               },
               {
                 path: "generic-dashboard",
-                element: <GenericDashboard />,
+                element: mockup(<GenericDashboard />),
               },
               {
                 path: "detenus",
                 children: [
-                  {
-                    index: true,
-                    element: <InmateListPage />,
-                  },
-                  {
-                    path: ":id",
-                    element: <InmateDetailPage />,
-                  },
-                  {
-                    path: "new",
-                    element: <DetenuFormPage />,
-                  },
-                  {
-                    path: "update/:id",
-                    element: <DetenuFormPage />,
-                  }
+                  { index: true, element: guard('prisoners:read', <InmateListPage />) },
+                  { path: ":id", element: guard('prisoners:read', <InmateDetailPage />) },
+                  { path: "new", element: guard('prisoners:create', <DetenuFormPage />) },
+                  { path: "update/:id", element: guard('prisoners:update', <DetenuFormPage />) },
                 ],
               },
               {
                 path: "visits",
                 children: [
-                  {
-                    index: true,
-                    element: <VisiteListPage />,
-                  },
-                  {
-                    path: "new",
-                    element: <VisiteFormPage />,
-                  },
-                  {
-                    path: "update/:id",
-                    element: <VisiteFormPage />,
-                  },
-                  {
-                    path: ":id",
-                    element: <VisiteDetailPage />,
-                  },
+                  { index: true, element: guard('visits:read', <VisiteListPage />) },
+                  { path: "new", element: guard('visits:create', <VisiteFormPage />) },
+                  { path: "update/:id", element: guard('visits:update', <VisiteFormPage />) },
+                  { path: ":id", element: guard('visits:read', <VisiteDetailPage />) },
                 ],
               },
               {
                 path: "transfers",
                 children: [
-                  {
-                    index: true,
-                    element: <TransfertListPage />,
-                  },
-                  {
-                    path: "new",
-                    element: <TransfertFormPage />,
-                  },
-                  {
-                    path: "update/:id",
-                    element: <TransfertFormPage />,
-                  },
-                  {
-                    path: "sorties/new",
-                    element: <SortieFormPage />,
-                  },
-                  {
-                    path: "sorties/update/:id",
-                    element: <SortieFormPage />,
-                  },
-                  {
-                    path: ":id",
-                    element: <TransfertDetailPage />,
-                  },
+                  { index: true, element: guard(['transfers:read', 'exits:read'], <TransfertListPage />) },
+                  { path: "new", element: guard('transfers:create', <TransfertFormPage />) },
+                  { path: "update/:id", element: guard('transfers:update', <TransfertFormPage />) },
+                  { path: "sorties/new", element: guard('exits:create', <SortieFormPage />) },
+                  { path: "sorties/update/:id", element: guard('exits:update', <SortieFormPage />) },
+                  { path: ":id", element: guard('transfers:read', <TransfertDetailPage />) },
                 ],
               },
               {
                 path: "pardons",
-                element: <PresidentialPardons />,
+                element: mockup(<PresidentialPardons />),
               },
               {
                 path: "reinsertion",
-                element: <ReinsertionManagement />,
+                element: mockup(<ReinsertionManagement />),
               },
               {
                 path: "transfers-releases",
-                element: <TransfersReleases />,
+                element: mockup(<TransfersReleases />),
               },
               {
                 path: "reports",
-                element: <ReportsManagement />,
+                element: mockup(<ReportsManagement />),
               },
               {
                 path: "incidents",
                 children: [
-                  { index: true, element: <IncidentsPage /> },
-                  { path: "new", element: <IncidentFormPage /> },
-                  { path: "update/:id", element: <IncidentFormPage /> },
+                  { index: true, element: guard('disciplinary_records:read', <IncidentsPage />) },
+                  { path: "new", element: guard('disciplinary_records:create', <IncidentFormPage />) },
+                  { path: "update/:id", element: guard('disciplinary_records:update', <IncidentFormPage />) },
                 ],
               },
               {
                 path: "infirmerie",
                 children: [
-                  { index: true, element: <InfirmeriePage /> },
-                  { path: "new", element: <InfirmerieFormPage /> },
-                  { path: "update/:id", element: <InfirmerieFormPage /> },
+                  { index: true, element: guard('health_records:read', <InfirmeriePage />) },
+                  { path: "new", element: guard('health_records:create', <InfirmerieFormPage />) },
+                  { path: "update/:id", element: guard('health_records:update', <InfirmerieFormPage />) },
                 ],
               },
               {
                 path: "security",
-                element: <SecurityDashboard />,
+                element: mockup(<SecurityDashboard />),
               },
               {
                 path: "users",
-                element: <Users />,
+                element: guard('users:read', <UsersPage />),
+              },
+              {
+                path: "proches",
+                element: guard('relative_links:validate', <ProchesValidationPage />),
+              },
+              {
+                path: "affectations",
+                element: guard('judicial_assignments:read', <AffectationsPage />),
               },
               {
                 path: "settings",
-                element: <Settings />,
+                element: mockup(<Settings />),
               },
               // 404 PROTÉGÉ
               {

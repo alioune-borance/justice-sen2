@@ -1,8 +1,9 @@
 // features/infirmerie/types/infirmerie.ts
 export interface HealthRecord {
-  condition_medical: string;
+  id?: number;
+  medical_condition: string;
   description: string;
-  date_diagnosis: string;
+  date_of_diagnosis: string;
 }
 
 export interface InfirmeriePatient {

@@ -10,21 +10,48 @@ import {
   Settings,
   AlertTriangle,
   Stethoscope,
+  HeartHandshake,
+  UserCog,
+  Gavel,
 } from 'lucide-react';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { Permission, Role } from '../../features/auth/types/user.types';
+
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ReactNode;
+  // Entrée affichée si l'utilisateur a l'une de ces permissions (GET auth/me/)
+  anyOf?: Permission[];
+  // Écrans maquettes : rôles autorisés
+  roles?: Role[];
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { path: '/', label: 'Tableau de bord', icon: <LayoutDashboard className="h-5 w-5" /> },
+  { path: '/detenus', label: 'Gestion des détenus', icon: <Users className="h-5 w-5" />, anyOf: ['prisoners:read'] },
+  { path: '/visits', label: 'Visites', icon: <Calendar className="h-5 w-5" />, anyOf: ['visits:read'] },
+  { path: '/transfers', label: 'Transferts', icon: <FileText className="h-5 w-5" />, anyOf: ['transfers:read', 'exits:read'] },
+  { path: '/incidents', label: 'Incidents', icon: <AlertTriangle className="h-5 w-5" />, anyOf: ['disciplinary_records:read'] },
+  { path: '/infirmerie', label: 'Infirmerie', icon: <Stethoscope className="h-5 w-5" />, anyOf: ['health_records:read'] },
+  { path: '/proches', label: 'Proches à valider', icon: <HeartHandshake className="h-5 w-5" />, anyOf: ['relative_links:validate'] },
+  { path: '/users', label: 'Utilisateurs', icon: <UserCog className="h-5 w-5" />, anyOf: ['users:read'] },
+  { path: '/affectations', label: 'Affectations judiciaires', icon: <Gavel className="h-5 w-5" />, anyOf: ['judicial_assignments:read'] },
+  { path: '/security', label: 'Sécurité', icon: <Shield className="h-5 w-5" />, roles: ['SUPER_ADMIN'] },
+  { path: '/settings', label: 'Paramètres', icon: <Settings className="h-5 w-5" />, roles: ['SUPER_ADMIN'] },
+];
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
-  
-  const navItems = [
-    { path: '/', label: 'Tableau de bord', icon: <LayoutDashboard className="h-5 w-5" /> },
-    { path: '/detenus', label: 'Gestion des détenus', icon: <Users className="h-5 w-5" /> },
-    { path: '/visits', label: 'Visites', icon: <Calendar className="h-5 w-5" /> },
-    { path: '/transfers', label: 'Transferts', icon: <FileText className="h-5 w-5" /> },
-    { path: '/incidents', label: 'Incidents', icon: <AlertTriangle className="h-5 w-5" /> },
-    { path: '/infirmerie', label: 'Infirmerie', icon: <Stethoscope className="h-5 w-5" /> },
-    { path: '/security', label: 'Sécurité', icon: <Shield className="h-5 w-5" /> },
-    { path: '/settings', label: 'Paramètres', icon: <Settings className="h-5 w-5" /> },
-  ];
+  const { user, canAny } = usePermissions();
+
+  // Masquage d'affichage seulement : le backend filtre les données et refuse les actions
+  const navItems = NAV_ITEMS.filter((item) => {
+    if (item.anyOf && !canAny(item.anyOf)) return false;
+    if (item.roles && user?.rbac_enforced && !(user.role && item.roles.includes(user.role))) return false;
+    return true;
+  });
+  const title = user?.prison?.name ?? (user?.scope.type === 'national' ? 'Niveau national' : 'Gestion pénitentiaire');
 
   return (
     <aside className="w-64 bg-slate-800 text-white min-h-screen">
@@ -40,7 +67,7 @@ export const Sidebar: React.FC = () => {
           </div>
           <div className="flex-1 bg-red-600" />
         </div>
-        <h1 className="text-xl font-bold">Gestion prison - Saytou prison</h1>
+        <h1 className="text-xl font-bold">{title}</h1>
       </div>
       <nav className="mt-6">
         {navItems.map((item) => (

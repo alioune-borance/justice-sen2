@@ -9,14 +9,27 @@ import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Detenu } from '../../features/detenus/types/detenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { Prison } from '../../features/prisons/types/prison';
-import { useGetSorties } from '../../features/sorties/api/useGetSortie';
+import { useGetSorties, useSortieDecision } from '../../features/sorties/api/useGetSortie';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
 import { SortieTableRow } from '../../features/sorties/types/sortie';
 
 export const TransfertListPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const { data: transferts = [], isLoading } = useGetTransferts();
-  const { data: sorties = [] } = useGetSorties();
+  const { can, isMyPrison } = usePermissions();
+  const { data: transferts = [], isLoading } = useGetTransferts({ enabled: can('transfers:read') });
+  const { data: sorties = [] } = useGetSorties({ enabled: can('exits:read') });
+  const sortieDecision = useSortieDecision();
+
+  const handleDecideSortie = (sortie: SortieTableRow, action: 'approve' | 'reject') => {
+    const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
+    if (reason === null) return; // annulé
+    sortieDecision.mutate(
+      { id: sortie.id, action, reason: reason || undefined },
+      { onError: (error) => window.alert(getApiErrorMessage(error)) },
+    );
+  };
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
 
@@ -192,10 +205,14 @@ export const TransfertListPage: React.FC = () => {
           sorties={tableRowsSorties}
           onViewDetail={handleViewDetail}
           onEdit={() => {}}
-          onAddTransfert={() => navigate('/transfers/new')}
-          onEditTransfert={(t) => navigate(`/transfers/update/${t.id}`)}
-          onAddSortie={() => navigate('/transfers/sorties/new')}
-          onEditSortie={(s) => navigate(`/transfers/sorties/update/${s.id}`)}
+          onAddTransfert={can('transfers:create') ? () => navigate('/transfers/new') : undefined}
+          onEditTransfert={can('transfers:update') ? (t) => navigate(`/transfers/update/${t.id}`) : undefined}
+          // Seul un transfert en attente, de la prison de l'utilisateur, est modifiable
+          canEditTransfert={(t) => t.status === 'PENDING' && isMyPrison(t.from_prison)}
+          onAddSortie={can('exits:create') ? () => navigate('/transfers/sorties/new') : undefined}
+          onEditSortie={can('exits:update') ? (s) => navigate(`/transfers/sorties/update/${s.id}`) : undefined}
+          onDecideSortie={can('exits:validate') ? handleDecideSortie : undefined}
+          canDecideSortie={(s) => isMyPrison(s.prison)}
           loading={isLoading}
         />
       </div>

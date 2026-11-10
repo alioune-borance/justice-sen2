@@ -8,9 +8,12 @@ import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Detenu } from '../../features/detenus/types/detenu';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { Can } from '../../features/auth/components/Can';
 
 export const VisiteListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { can } = usePermissions();
 
   const { data: visites = [], isLoading } = useGetVisites();
   const { data: detenusList = [] } = useGetDetenus();
@@ -24,6 +27,17 @@ export const VisiteListPage: React.FC = () => {
 
   const handleViewDetail = (id: number) => navigate(`/visits/${id}`);
   const handleEdit = (visite: VisiteTableRow) => navigate(`/visits/update/${visite.id}`);
+
+  const tableRows: VisiteTableRow[] = useMemo(() => {
+    return visites.map((visite) => ({
+      ...visite,
+      detenu_name: getDetenuName(visite.prisoner),
+      visitor: getVisitorName(visite.visitor_name),
+      visit_date: visite.visit_date,
+      purpose: visite.purpose,
+      status: visite.status,
+    } as VisiteTableRow));
+  }, [visites, detenusList]);
 
   const generateReport = useCallback(() => {
     const doc = new jsPDF();
@@ -106,17 +120,6 @@ export const VisiteListPage: React.FC = () => {
     doc.save(`visites-${new Date().toISOString().slice(0, 10)}.pdf`);
   }, [tableRows]);
 
-  const tableRows: VisiteTableRow[] = useMemo(() => {
-    return visites.map((visite) => ({
-      ...visite,
-      detenu_name: getDetenuName(visite.prisoner),
-      visitor: getVisitorName(visite.visitor_name),
-      visit_date: visite.visit_date,
-      purpose: visite.purpose,
-      status: visite.status,
-    } as VisiteTableRow));
-  }, [visites, detenusList]);
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -132,12 +135,14 @@ export const VisiteListPage: React.FC = () => {
             </svg>
             Rapport PDF
           </button>
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            onClick={() => navigate('/visits/new')}
-          >
-            Nouvelle visite
-          </button>
+          <Can perm="visits:create">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => navigate('/visits/new')}
+            >
+              Nouvelle visite
+            </button>
+          </Can>
         </div>
       </div>
 
@@ -145,7 +150,7 @@ export const VisiteListPage: React.FC = () => {
         <VisitTable
           visites={tableRows}
           onViewDetail={handleViewDetail}
-          onEdit={handleEdit}
+          onEdit={can('visits:update') ? handleEdit : undefined}
           loading={isLoading}
         />
       </div>

@@ -11,10 +11,13 @@ import { InmateStats } from '../../components/inmates/InmateStats';
 import { InmateFormModal } from '../../components/inmates/InmateFormModal';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { Prison } from '../../features/prisons/types/prison'; // Import Prison type
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { Can } from '../../features/auth/components/Can';
 
 export const InmateListPage: React.FC = () => {
   const navigate = useNavigate();
-  
+  const { can, isMyPrison } = usePermissions();
+
   // API Hooks
   const { data: detenus = [], isLoading, isError, refetch } = useGetDetenus();
   const createMutation = useCreateDetenu();
@@ -317,13 +320,15 @@ export const InmateListPage: React.FC = () => {
             </svg>
             Générer Rapport PDF
           </button>
-          <button
-            onClick={openFormDetenu}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            disabled={createMutation.isPending || isLoadingPrisons}
-          >
-            {createMutation.isPending ? 'Création...' : 'Ajouter un nouveau détenu'}
-          </button>
+          <Can perm="prisoners:create">
+            <button
+              onClick={openFormDetenu}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={createMutation.isPending || isLoadingPrisons}
+            >
+              {createMutation.isPending ? 'Création...' : 'Ajouter un nouveau détenu'}
+            </button>
+          </Can>
         </div>
       </div>
 
@@ -341,7 +346,9 @@ export const InmateListPage: React.FC = () => {
         <InmateTable
           detenus={filteredDetenus}
           onViewDetail={handleViewDetail}
-          onEdit={handleOpenEditModal}
+          onEdit={can('prisoners:update') ? handleOpenEditModal : undefined}
+          // Ancien détenu ou transfert entrant : lecture seule
+          canEdit={(d) => isMyPrison(d.prison)}
           loading={isLoading}
         />
       </div>

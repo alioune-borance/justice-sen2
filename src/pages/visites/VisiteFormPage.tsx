@@ -1,10 +1,11 @@
 // pages/visites/VisiteFormPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, X, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Save, X, CalendarDays, AlertTriangle } from 'lucide-react';
 import { useGetVisiteById, useCreateVisite, useUpdateVisite, useCreateVisitor } from '../../features/visites/api/useGetVisite';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Detenu } from '../../features/detenus/types/detenu';
+import { getApiErrorMessages } from '../../shared/api/errorMessages';
 
 export const VisiteFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,8 @@ export const VisiteFormPage: React.FC = () => {
     prison: '',
   });
 
+  const [submitErrors, setSubmitErrors] = useState<string[]>([]);
+
   useEffect(() => {
     if (isEditMode && visite) {
       setFormData({
@@ -58,6 +61,7 @@ export const VisiteFormPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setSubmitErrors([]);
 
     try {
       const visitorPayload = {
@@ -76,7 +80,7 @@ export const VisiteFormPage: React.FC = () => {
         start_time: formData.start_time ? new Date(formData.start_time).toISOString() : new Date(formData.visit_date).toISOString(),
         end_time: formData.end_time ? new Date(formData.end_time).toISOString() : new Date(formData.visit_date).toISOString(),
         status: 'scheduled',
-        prison: 1,
+        // prison : déduite du détenu par le serveur (plus de valeur codée en dur)
         prisoner: Number(formData.prisoner)
       };
 
@@ -89,6 +93,7 @@ export const VisiteFormPage: React.FC = () => {
       navigate('/visits');
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
+      setSubmitErrors(getApiErrorMessages(error));
     }
   };
 
@@ -123,6 +128,25 @@ export const VisiteFormPage: React.FC = () => {
         </h1>
         <div className="w-24" />
       </div>
+
+      {/* Erreurs de validation renvoyées par le serveur */}
+      {submitErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-800">
+              {isEditMode
+                ? 'La modification de la visite a échoué :'
+                : "L'ajout de la visite a échoué :"}
+            </p>
+            <ul className="mt-1 text-sm text-red-700 list-disc list-inside space-y-0.5">
+              {submitErrors.map((message, index) => (
+                <li key={index}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit}>

@@ -2,7 +2,11 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, Truck } from 'lucide-react';
-import { useGetTransfertById, useGetTransferts } from '../../features/transferts/api/useGetTransfert';
+import { useGetTransfertById, useGetTransferts, useTransfertDecision } from '../../features/transferts/api/useGetTransfert';
+import { TransfertAction } from '../../features/transferts/api/transferts.api';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { Can } from '../../features/auth/components/Can';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Prison } from '../../features/prisons/types/prison';
@@ -15,11 +19,18 @@ export const TransfertDetailPage: React.FC = () => {
 
 
   //const { data: transfert, isLoading, isError } = useGetTransfertById(transfertId);
-  const { data: transferts = [] } = useGetTransferts(); 
-
-  console.log(transferts)
+  const { data: transferts = [] } = useGetTransferts();
   const transfert = transferts.find(t => t.id === transfertId);
-  console.log(transfert)
+  const { isMyPrison } = usePermissions();
+  const decision = useTransfertDecision();
+  const isPending = transfert?.status === 'PENDING';
+
+  const decide = (action: TransfertAction) => {
+    if (!transfert) return;
+    const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
+    if (reason === null) return; // annulé
+    decision.mutate({ id: transfert.id, action, reason: reason || undefined });
+  };
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
 
@@ -248,16 +259,48 @@ export const TransfertDetailPage: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="p-6 border-t border-gray-200">
+          {decision.isError && (
+            <p className="text-sm text-red-600 mb-3 text-right">{getApiErrorMessage(decision.error)}</p>
+          )}
           <div className="flex justify-end space-x-3">
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
               Imprimer l'ordre de transfert
             </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              Annuler le transfert
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Modifier le transfert
-            </button>
+            {/* Validation par la prison source (SUPERVISEUR ou ADMIN), D6 */}
+            <Can perm="transfers:validate" when={isPending && isMyPrison(transfert!.from_prison)}>
+              <button
+                onClick={() => decide('reject')}
+                disabled={decision.isPending}
+                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 disabled:opacity-50"
+              >
+                Refuser
+              </button>
+              <button
+                onClick={() => decide('approve')}
+                disabled={decision.isPending}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                Valider le transfert
+              </button>
+            </Can>
+            {/* Arrivée signalée par la prison de destination (D21) */}
+            <Can perm="transfers:complete" when={transfert!.status === 'APPROVED' && isMyPrison(transfert!.to_prison)}>
+              <button
+                onClick={() => decide('complete')}
+                disabled={decision.isPending}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                Réceptionner le détenu
+              </button>
+            </Can>
+            <Can perm="transfers:update" when={isPending && isMyPrison(transfert!.from_prison)}>
+              <button
+                onClick={() => navigate(`/transfers/update/${transfert!.id}`)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Modifier le transfert
+              </button>
+            </Can>
           </div>
         </div>
       </div>

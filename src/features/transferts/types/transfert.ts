@@ -9,11 +9,14 @@ export interface Transfert extends Deplacement{
     priority: string;
 }
 
+// Champs gérés par le serveur : statut et décision (actions approve / reject / complete)
+type ServerManaged = 'id' | 'authorized_by' | 'status' | 'decided_by' | 'decided_at' | 'decision_reason';
+
 // For creating (without id)
-export type CreateTransfertDto = Omit<Transfert,'id'>;
+export type CreateTransfertDto = Omit<Transfert, ServerManaged>;
 
 // For updating (partial without id)
-export type UpdateTransfertDto = Partial<Omit<Transfert, 'id'>>
+export type UpdateTransfertDto = Partial<CreateTransfertDto>
 
 export interface TransfertTableRow extends Transfert {
     detenu_name: string;

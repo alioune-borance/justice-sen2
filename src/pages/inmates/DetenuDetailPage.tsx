@@ -2,9 +2,15 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, FolderOpen, Eye, Download, Trash2, Upload, File } from 'lucide-react';
-import { useGetDetenuById } from '../../features/detenus/api/useGetDetenu';
+import { useGetDetenuById, useReleaseDetenu } from '../../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { Prison } from '../../features/prisons/types/prison';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { Can } from '../../features/auth/components/Can';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
+
+// Statuts pour lesquels la libération n'a plus de sens
+const RELEASED_STATUSES = ['Libéré', 'Décédé', 'Évadé'];
 const documents = [
     {
       id: 1,
@@ -64,7 +70,15 @@ export const InmateDetailPage: React.FC = () => {
   const { data: detenu, isLoading, isError } = useGetDetenuById(detenuId,{enabled : true});
 
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
-  
+  const { isMyPrison } = usePermissions();
+  const release = useReleaseDetenu();
+
+  const handleRelease = () => {
+    if (window.confirm('Confirmer la libération de ce détenu ? Cette action est journalisée.')) {
+      release.mutate({ id: detenuId }, { onError: (error) => window.alert(getApiErrorMessage(error)) });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -171,7 +185,29 @@ export const InmateDetailPage: React.FC = () => {
           Retour à la liste
         </button>
         <h1 className="text-2xl font-bold text-slate-800">Fiche détenu</h1>
-        <div className="w-24"></div>
+        <div className="flex items-center gap-2 min-w-24 justify-end">
+          {/* Libération : SUPERVISEUR / ADMIN de la prison du détenu (D6) */}
+          <Can
+            perm="prisoners:validate"
+            when={!RELEASED_STATUSES.includes(detenu.status) && isMyPrison(detenu.prison)}
+          >
+            <button
+              onClick={handleRelease}
+              disabled={release.isPending}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {release.isPending ? 'Libération...' : 'Libérer'}
+            </button>
+          </Can>
+          <Can perm="prisoners:update" when={isMyPrison(detenu.prison)}>
+            <button
+              onClick={() => navigate(`/detenus/update/${detenu.id}`)}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Modifier
+            </button>
+          </Can>
+        </div>
       </div>
 
       {/* Main Card - MAKE SURE THIS FULL CARD IS RETURNED */}

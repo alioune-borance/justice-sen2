@@ -4,10 +4,12 @@ import { addNewVisite, addNewVisitor, getVisiteById, getVisites, getVisitors, up
 
 type UpdateVisiteVariables = { id: number } & UpdateVisiteDto;
 
-export const useGetVisites = () =>
+// enabled: false quand l'utilisateur n'a pas la permission de lecture (évite un 403 inutile)
+export const useGetVisites = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: ["visites"],
     queryFn: () => getVisites(),
+    enabled: options?.enabled ?? true,
     staleTime: 30 * 60 * 1000, 
   });
 

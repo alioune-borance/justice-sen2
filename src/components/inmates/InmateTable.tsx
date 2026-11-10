@@ -7,7 +7,10 @@ import { InmateTableRow } from '../../features/detenus/types/detenu';
 interface InmateTableProps {
   detenus: InmateTableRow[];
   onViewDetail: (id: number) => void;
-  onEdit: (id: number) => void;
+  // Absent : pas de bouton « Modifier » (permission manquante)
+  onEdit?: (id: number) => void;
+  // Ex. détenu d'une autre prison (historique, transfert entrant) : lecture seule
+  canEdit?: (detenu: InmateTableRow) => boolean;
   loading?: boolean;
 }
 
@@ -17,6 +20,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
   detenus,
   onViewDetail,
   onEdit,
+  canEdit = () => true,
   loading = false,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -129,13 +133,15 @@ export const InmateTable: React.FC<InmateTableProps> = ({
                   >
                     <Eye className="h-4 w-4" />
                   </button>
-                  <button 
-                    onClick={() => onEdit(detenu.id)}
-                    className="p-1 text-gray-600 hover:text-gray-800" 
-                    title="Modifier"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
+                  {onEdit && canEdit(detenu) && (
+                    <button
+                      onClick={() => onEdit(detenu.id)}
+                      className="p-1 text-gray-600 hover:text-gray-800"
+                      title="Modifier"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  )}
                   <button className="p-1 text-gray-600 hover:text-gray-800" title="Plus d'options">
                     <MoreVertical className="h-4 w-4" />
                   </button>

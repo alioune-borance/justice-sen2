@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import { UpdateSortieDto, Sortie } from '../types/sortie';
-import { addNewSortie, getSortieById, getSorties, updateSortie } from './sorties.api';
+import { addNewSortie, decideSortie, getSortieById, getSorties, SortieAction, updateSortie } from './sorties.api';
 
 type UpdateSortieVariables = { id: number } & UpdateSortieDto;
 
-export const useGetSorties = () =>
+// enabled: false quand l'utilisateur n'a pas la permission de lecture (évite un 403 inutile)
+export const useGetSorties = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: ["sorties"],
     queryFn: () => getSorties(),
+    enabled: options?.enabled ?? true,
     staleTime: 30 * 60 * 1000, 
   });
 
@@ -53,6 +55,18 @@ export const useUpdateSortie = (): UseMutationResult<
     },
     onError: (error: Error) => {
       console.error('Error updating sortie:', error);
+    },
+  });
+};
+export const useSortieDecision = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, action, reason }: { id: number; action: SortieAction; reason?: string }) =>
+      decideSortie(id, action, reason),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['sorties'] });
+      queryClient.invalidateQueries({ queryKey: ['sortie', variables.id] });
     },
   });
 };

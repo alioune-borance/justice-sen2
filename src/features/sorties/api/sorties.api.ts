@@ -1,5 +1,5 @@
 import { axiosInstance } from "../../../shared/api/axiosInstance";
-import { Sortie } from "../types/sortie";
+import { CreateSortieDto, Sortie, UpdateSortieDto } from "../types/sortie";
 
 type Params = {
   page?: number;
@@ -19,13 +19,20 @@ export const getSortieById = async (id: number): Promise<Sortie> => {
     return data;
 }
 
-export const addNewSortie = async (SortieData: Omit<Sortie, 'id'>): Promise<Sortie> => {
+export const addNewSortie = async (SortieData: CreateSortieDto): Promise<Sortie> => {
   const { data } = await axiosInstance.post<Sortie>('exits/', SortieData);
   return data;
 };
 
 // Update Sortie - accept partial data
-export const updateSortie = async (id: number, SortieData: Partial<Omit<Sortie, 'id'>>): Promise<Sortie> => {
+export const updateSortie = async (id: number, SortieData: UpdateSortieDto): Promise<Sortie> => {
   const { data } = await axiosInstance.put<Sortie>(`exits/${id}/`, SortieData);
   return data;
 };  
+// Validation / refus d'une sortie en attente (SUPERVISEUR ou ADMIN de la prison)
+export type SortieAction = "approve" | "reject";
+
+export const decideSortie = async (id: number, action: SortieAction, reason?: string): Promise<Sortie> => {
+  const { data } = await axiosInstance.post<Sortie>(`exits/${id}/${action}/`, reason ? { reason } : {});
+  return data;
+};

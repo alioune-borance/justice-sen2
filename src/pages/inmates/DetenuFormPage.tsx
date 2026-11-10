@@ -6,6 +6,11 @@ import countries from 'i18n-iso-countries';
 import fr from 'i18n-iso-countries/langs/fr.json';
 import { useGetDetenuById } from '../../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+
+// Statut, date de libération, établissement : modifiés par la libération, le transfert ou les
+// décisions de justice, jamais par ce formulaire (lecture seule côté serveur)
+const SENSITIVE_FIELD_HINT = 'Modifiable uniquement par une libération, un transfert ou une décision de justice.';
 
 countries.registerLocale(fr);
 const countryOptions = Object.entries(countries.getNames('fr', { select: 'official' }))
@@ -172,6 +177,15 @@ export const DetenuFormPage: React.FC = () => {
     'Condamné',
     'Prévenu'
   ]
+
+  // Rôles prison : le détenu est créé dans leur établissement (imposé par le serveur)
+  const { user } = usePermissions();
+  const forcedPrison = user?.rbac_enforced && user.scope.type === 'prison' ? user.prison : null;
+  useEffect(() => {
+    if (!isEditMode && forcedPrison) {
+      setFormData(prev => ({ ...prev, prison: forcedPrison.id.toString() }));
+    }
+  }, [isEditMode, forcedPrison?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -424,11 +438,12 @@ export const DetenuFormPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Statut du détenu *
                       </label>
-                      <select 
-                        name="status" 
+                      <select
+                        name="status"
                         value={formData.status}
                         onChange={handleChange}
-                        disabled={isLoadingPrisons}
+                        disabled={isLoadingPrisons || isEditMode}
+                        title={isEditMode ? SENSITIVE_FIELD_HINT : undefined}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         required
                       >
@@ -478,25 +493,31 @@ export const DetenuFormPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Date de libération prévue (si inculpé)
                       </label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         name="release_date"
                         value={formData.release_date}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={isEditMode}
+                        title={isEditMode ? SENSITIVE_FIELD_HINT : undefined}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         required
                       />
+                      {isEditMode && (
+                        <p className="text-xs text-gray-500 mt-1">{SENSITIVE_FIELD_HINT}</p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Établissement *
                       </label>
-                      <select 
-                        name="prison" 
+                      <select
+                        name="prison"
                         value={formData.prison}
                         onChange={handleChange}
-                        disabled={isLoadingPrisons}
+                        // Changement d'établissement : par un transfert ; agents : leur établissement
+                        disabled={isLoadingPrisons || isEditMode || !!forcedPrison}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         required
                       >

@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { HealthRecord } from '../types/infirmerie';
-import { getInfirmeriePatients, getPrisonerById, addHealthRecord } from './infirmerie.api';
+import {
+  getInfirmeriePatients,
+  getPrisonerById,
+  addHealthRecord,
+  updateHealthRecord,
+  deleteHealthRecord,
+} from './infirmerie.api';
 
 export const useGetInfirmeriePatients = () =>
   useQuery({
@@ -24,5 +30,32 @@ export const useAddHealthRecord = () => {
       addHealthRecord(prisonerId, record),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['infirmerie'] }),
     onError: (error: unknown) => console.error('Error adding health record:', error),
+  });
+};
+
+export const useUpdateHealthRecord = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      prisonerId,
+      recordId,
+      changes,
+    }: {
+      prisonerId: number;
+      recordId: number;
+      changes: Partial<HealthRecord>;
+    }) => updateHealthRecord(prisonerId, recordId, changes),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['infirmerie'] }),
+    onError: (error: unknown) => console.error('Error updating health record:', error),
+  });
+};
+
+export const useDeleteHealthRecord = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ prisonerId, recordId }: { prisonerId: number; recordId: number }) =>
+      deleteHealthRecord(prisonerId, recordId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['infirmerie'] }),
+    onError: (error: unknown) => console.error('Error deleting health record:', error),
   });
 };

@@ -3,15 +3,20 @@ import { TransfertTableRow } from '../../features/transferts/types/transfert';
 import { Eye, Edit, LogOut, Calendar, ArrowRightLeft, AlertTriangle, Truck, Clock, MapPin, CheckCircle, Plus, Search } from 'lucide-react';
 import { SortieTableRow } from '../../features/sorties/types/sortie';
 
+// Les actions absentes (callback non fourni) ne sont pas affichées : la page les retire selon les
+// permissions de l'utilisateur (GET auth/me/). Le backend vérifie de toute façon droits et périmètre.
 interface TransfertTableProps {
   tranferts: TransfertTableRow[];
   sorties: SortieTableRow[];
   onViewDetail: (id: number) => void;
   onEdit: (transfert: TransfertTableRow) => void;
-  onAddTransfert: () => void;
-  onEditTransfert: (transfert: TransfertTableRow) => void;
-  onAddSortie: () => void;
-  onEditSortie: (sortie: SortieTableRow) => void;
+  onAddTransfert?: () => void;
+  onEditTransfert?: (transfert: TransfertTableRow) => void;
+  canEditTransfert?: (transfert: TransfertTableRow) => boolean;
+  onAddSortie?: () => void;
+  onEditSortie?: (sortie: SortieTableRow) => void;
+  onDecideSortie?: (sortie: SortieTableRow, action: 'approve' | 'reject') => void;
+  canDecideSortie?: (sortie: SortieTableRow) => boolean;
   loading?: boolean;
 }
 
@@ -21,8 +26,11 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
   onViewDetail,
   onAddTransfert,
   onEditTransfert,
+  canEditTransfert = () => true,
   onAddSortie,
   onEditSortie,
+  onDecideSortie,
+  canDecideSortie = () => true,
   loading = false,
 }) => {
   const [activeTab, setActiveTab] = useState('transfers');
@@ -100,13 +108,15 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-800">Gestion des transferts</h3>
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          onClick={onAddTransfert}
-        >
-          <Plus className="h-4 w-4" />
-          <span>Nouveau transfert</span>
-        </button>
+        {onAddTransfert && (
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            onClick={onAddTransfert}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nouveau transfert</span>
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -184,13 +194,15 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button
-                      onClick={() => onEditTransfert(transfert)}
-                      className="p-1 text-gray-500 hover:text-gray-800"
-                      title="Modifier"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
+                    {onEditTransfert && canEditTransfert(transfert) && (
+                      <button
+                        onClick={() => onEditTransfert(transfert)}
+                        className="p-1 text-gray-500 hover:text-gray-800"
+                        title="Modifier"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -205,13 +217,15 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-800">Gestion des sorties</h3>
-        <button
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-          onClick={onAddSortie}
-        >
-          <Plus className="h-4 w-4" />
-          <span>Programmer une sortie</span>
-        </button>
+        {onAddSortie && (
+          <button
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+            onClick={onAddSortie}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Programmer une sortie</span>
+          </button>
+        )}
       </div>
 
       <div className="relative">
@@ -286,13 +300,32 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
 
             <div className="flex items-center justify-between pt-4 border-t border-gray-200">
               <div className="flex space-x-2">
-                <button
-                  onClick={() => onEditSortie(release)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center space-x-1"
-                >
-                  <Edit className="h-3 w-3" />
-                  <span>Modifier</span>
-                </button>
+                {onEditSortie && (
+                  <button
+                    onClick={() => onEditSortie(release)}
+                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center space-x-1"
+                  >
+                    <Edit className="h-3 w-3" />
+                    <span>Modifier</span>
+                  </button>
+                )}
+                {onDecideSortie && release.status === 'PENDING' && canDecideSortie(release) && (
+                  <>
+                    <button
+                      onClick={() => onDecideSortie(release, 'approve')}
+                      className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm flex items-center space-x-1"
+                    >
+                      <CheckCircle className="h-3 w-3" />
+                      <span>Valider</span>
+                    </button>
+                    <button
+                      onClick={() => onDecideSortie(release, 'reject')}
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                    >
+                      Refuser
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
