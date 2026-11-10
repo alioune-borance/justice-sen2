@@ -2,23 +2,23 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { Dashboard } from "../../components/Dashboard";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
-import { WelcomePage } from "./WelcomePage";
+import { useRole } from "../../features/auth/hooks/useRole";
 import { HOME_REDIRECT } from "../../features/auth/config/rbac";
+import { WelcomePage } from "./WelcomePage";
+import { NationalDashboard } from "./NationalDashboard";
 
-// Page d'accueil selon le rôle
+// Page d'accueil selon le rôle (affichage seulement : chaque écran ne reçoit que les données autorisées)
 export const HomePage: React.FC = () => {
-  const { role, can } = usePermissions();
+  const { can } = usePermissions();
+  const { role, isNationalReadOnly, isRelative, isJudicialActor } = useRole();
 
   const redirect = role ? HOME_REDIRECT[role] : undefined;
-  if (redirect) {
-    return <Navigate to={redirect} replace />;
-  }
-  // Portails des proches et des acteurs judiciaires : à venir (demandes de visite, décisions)
-  if (role === "PROCHE_REFERENT" || role === "ACTEUR_JUDICIAIRE") {
-    return <WelcomePage />;
-  }
-  if (!can("prisoners:read")) {
-    return <WelcomePage />;
-  }
+  if (redirect) return <Navigate to={redirect} replace />;
+
+  // Ministères : vue nationale en lecture seule
+  if (isNationalReadOnly) return <NationalDashboard />;
+  // Proche référent et acteur judiciaire : « mes détenus » et raccourcis
+  if (isRelative || isJudicialActor || !can("prisoners:read")) return <WelcomePage />;
+  // Rôles prison et super administrateur : tableau de bord de l'établissement
   return <Dashboard />;
 };

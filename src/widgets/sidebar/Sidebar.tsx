@@ -16,18 +16,22 @@ import {
   Building2,
 } from 'lucide-react';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
-import { ROUTE_ACCESS, RoutePath } from '../../features/auth/config/rbac';
+import { useRole } from '../../features/auth/hooks/useRole';
+import { PRISONER_LINKED_ROLES, ROUTE_ACCESS, RoutePath } from '../../features/auth/config/rbac';
+import { Role } from '../../features/auth/types/user.types';
 
 interface NavItem {
   // '/' : accueil, ouvert à tous ; sinon un chemin de ROUTE_ACCESS (même règle que la route)
   path: '/' | RoutePath;
   label: string;
   icon: React.ReactNode;
+  // Rôles pour qui l'entrée ferait doublon avec leur accueil (affichage seulement)
+  hideFor?: Role[];
 }
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Tableau de bord', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { path: '/detenus', label: 'Gestion des détenus', icon: <Users className="h-5 w-5" /> },
+  { path: '/detenus', label: 'Gestion des détenus', icon: <Users className="h-5 w-5" />, hideFor: PRISONER_LINKED_ROLES },
   { path: '/visits', label: 'Visites', icon: <Calendar className="h-5 w-5" /> },
   { path: '/transfers', label: 'Transferts', icon: <FileText className="h-5 w-5" /> },
   { path: '/incidents', label: 'Incidents', icon: <AlertTriangle className="h-5 w-5" /> },
@@ -43,9 +47,16 @@ const NAV_ITEMS: NavItem[] = [
 export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { user, allows } = usePermissions();
+  const { role, isNationalReadOnly, isRelative, isJudicialActor } = useRole();
+
+  // Libellé de l'accueil selon ce qu'il affiche (voir pages/home/HomePage.tsx)
+  const homeLabel = isNationalReadOnly ? 'Vue nationale' : isRelative || isJudicialActor ? 'Mes détenus' : 'Tableau de bord';
 
   // Masquage d'affichage seulement : le backend filtre les données et refuse les actions
-  const navItems = NAV_ITEMS.filter((item) => item.path === '/' || allows(ROUTE_ACCESS[item.path]));
+  const navItems = NAV_ITEMS
+    .filter((item) => !(role && item.hideFor?.includes(role)))
+    .filter((item) => item.path === '/' || allows(ROUTE_ACCESS[item.path]))
+    .map((item) => (item.path === '/' ? { ...item, label: homeLabel } : item));
   const title = user?.prison?.name ?? (user?.scope.type === 'national' ? 'Niveau national' : 'Gestion pénitentiaire');
 
   return (

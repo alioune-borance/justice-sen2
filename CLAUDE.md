@@ -324,7 +324,12 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - **403 sur une action** : bandeau global `FORBIDDEN_MESSAGE` (`shared/notifications/`), sans déconnexion. L'option axios `silentForbidden: true` le désactive quand la page affiche elle-même l'erreur ;
   - **403 `account_*`** : redirection vers `/compte`.
 - **Comptes bloqués** (`access` ≠ `granted`, ou 403 `account_*` d'axios) : `RequireAuth` redirige vers `/compte` (`pages/errors/AccountStatusPage.tsx`).
-- **Accueil** (`pages/home/HomePage.tsx`) : PERSONNEL_SANTE → `/infirmerie` ; proche et acteur judiciaire → `WelcomePage` (détenus liés ou affectés, demandes du proche) ; sinon tableau de bord.
+- **Accueil** (`pages/home/HomePage.tsx`) et menu, selon le rôle :
+  - PERSONNEL_SANTE → `/infirmerie` (`HOME_REDIRECT`) ;
+  - REP_MIN_JUSTICE et REP_MIN_INTERIEUR → `NationalDashboard`, vue nationale en lecture seule (indicateurs, détenus présents par établissement en graphique et en tableau) ;
+  - PROCHE_REFERENT et ACTEUR_JUDICIAIRE → `WelcomePage`, qui affiche « Mes détenus » (détenus filtrés par le backend, avec lien de parenté ou fonction et dossier) et des raccourcis filtrés par `ROUTE_ACCESS` ;
+  - autres rôles → `Dashboard` de l'établissement.
+  Le libellé de l'accueil dans le menu suit le rôle ; `hideFor` retire les entrées qui feraient doublon avec l'accueil.
 - **Comptes et proches (phase 5)** :
   - `/users` (`pages/users/UsersPage.tsx`) : liste, création, désactivation des comptes ;
   - `/proches` : file de validation des proches (pièces téléchargées via l'API, jamais par URL media) ;
