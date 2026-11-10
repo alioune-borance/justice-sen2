@@ -92,6 +92,11 @@ export const ROUTE_ACCESS = {
   "/demandes/:id": { anyOf: ["visit_requests:update", "visit_requests:validate"] },
   // Permis : gestionnaires (révocation) et proche (ses permis) ; l'agent vérifie seulement
   "/permis": { anyOf: ["visit_permits:validate", "visit_requests:create"] },
+  // Contrôle à l'entrée : AG, SP, AP de la prison du permis (le proche lit aussi visit_permits, d'où les rôles)
+  "/verification-permis": {
+    perm: "visit_permits:read",
+    roles: ["AGENT_PENITENTIAIRE", "SUPERVISEUR_PRISON", "ADMIN_PRISON"],
+  },
   "/decisions": { perm: "court_decisions:read" },
   "/decisions/new": { perm: "court_decisions:create" },
   "/decisions/:id/correct": { perm: "court_decisions:update" },
@@ -141,6 +146,7 @@ export const ACTIONS = {
   "visitRequest.instruct": "visit_requests:update",
   "visitRequest.decide": "visit_requests:validate",
   "permit.revoke": "visit_permits:validate",
+  "permit.verify": "visit_permits:read",
   "decision.create": "court_decisions:create",
   "decision.correct": "court_decisions:update",
   "decision.applyEffect": "court_decisions:validate",

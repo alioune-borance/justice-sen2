@@ -44,6 +44,7 @@ import { MaDemandeDetailPage } from '../../pages/demandes-visite/MaDemandeDetail
 import { DemandesATraiterPage } from '../../pages/demandes-visite/DemandesATraiterPage';
 import { DemandeVerificationPage } from '../../pages/demandes-visite/DemandeVerificationPage';
 import { PermisPage } from '../../pages/permis/PermisPage';
+import { VerificationPermisPage } from '../../pages/permis/VerificationPermisPage';
 import { DecisionsPage } from '../../pages/decisions/DecisionsPage';
 import { DecisionFormPage } from '../../pages/decisions/DecisionFormPage';
 
@@ -195,6 +196,11 @@ export const router = createBrowserRouter([
               {
                 path: "permis",
                 element: guard("/permis", <PermisPage />),
+              },
+              {
+                // Agent pénitentiaire : contrôle d'un permis à l'entrée (numéro, code ou QR code)
+                path: "verification-permis",
+                element: guard("/verification-permis", <VerificationPermisPage />),
               },
               {
                 path: "decisions",

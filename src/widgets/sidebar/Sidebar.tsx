@@ -18,6 +18,7 @@ import {
   ClipboardList,
   FileBadge,
   Scale,
+  ScanLine,
 } from 'lucide-react';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { useRole } from '../../features/auth/hooks/useRole';
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/mes-demandes', label: 'Mes demandes de visite', icon: <CalendarCheck className="h-5 w-5" /> },
   { path: '/demandes', label: 'Demandes de visite', icon: <ClipboardList className="h-5 w-5" /> },
   { path: '/permis', label: 'Permis de visite', icon: <FileBadge className="h-5 w-5" /> },
+  { path: '/verification-permis', label: 'Vérifier un permis', icon: <ScanLine className="h-5 w-5" /> },
   { path: '/decisions', label: 'Décisions de justice', icon: <Scale className="h-5 w-5" /> },
   { path: '/proches', label: 'Proches à valider', icon: <HeartHandshake className="h-5 w-5" /> },
   { path: '/users', label: 'Utilisateurs', icon: <UserCog className="h-5 w-5" /> },

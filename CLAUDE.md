@@ -83,6 +83,9 @@ justice-sen2/
 │   │   ├── sorties/          #   /exits
 │   │   ├── incidents/        #   /prisoners/:id/disciplinary-records
 │   │   ├── infirmerie/       #   /prisoners/:id/health-records
+│   │   ├── demandes-visite/  #   /visit-requests, /visit-request-documents (circuit des visites)
+│   │   ├── permis/           #   /visit-permits (liste, révocation, vérification, lecture du QR)
+│   │   ├── decisions/        #   /court-decisions (décisions de justice versionnées)
 │   │   └── shared/deplacement.ts  # interface commune Transfert/Sortie
 │   ├── pages/                # Pages routées branchées sur l'API (liste / détail / formulaire)
 │   │   ├── inmates/  visites/  transferts/  incidents/  infirmerie/  login/
@@ -92,7 +95,11 @@ justice-sen2/
 │   ├── widgets/              # Layout (layout/Layout.tsx) + Sidebar (sidebar/Sidebar.tsx) réellement utilisés
 │   ├── entities/             # Anciens types camelCase (Detenu, Transfer, Release, Report…) utilisés
 │   │                         # uniquement par les composants mock / morts
+│   ├── shared/
+│   │   ├── notifications/    # Bandeau global (403, session expirée)
+│   │   ├── utils/dates.ts    # Formats de date fr-FR
 │   ├── shared/api/
+│   │   ├── download.ts       # Téléchargement authentifié des fichiers privés
 │   │   ├── axiosInstance.ts  # Instance axios + intercepteurs (Bearer, refresh sur 401)
 │   │   └── errorMessages.ts  # Traduction FR des erreurs DRF (non suivi par git pour l'instant)
 │   └── index.css             # Directives Tailwind
@@ -351,6 +358,10 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - `/permis` (`pages/permis/PermisPage.tsx`) : permis émis (filtre par état), PDF et révocation motivée ; le proche y voit ses permis ;
   - `/decisions` (`pages/decisions/`) : décisions par détenu (`?detenu=&historique=1` affiche les versions corrigées), saisie et correction en version n+1 (PDF, effet proposé pré-rempli selon le type), application ou rejet de l'effet par l'AP ou le SP ;
   - la fonction de l'acteur judiciaire (juge, greffier, avocat) restreint l'affichage via `usePermissions().canOnPrisoner(perm, détenu)` et `JUDICIAL_FUNCTION_GRANTS`, lus depuis les liens de `/me`. Cette restriction s'applique même en mode observation, comme côté backend.
+- **Vérification d'un permis** (`/verification-permis`, `pages/permis/VerificationPermisPage.tsx`, AG, SP et AP) :
+  - saisie du numéro ou du code, ou lecture du QR `SIGEP-PV|numéro|code` ;
+  - la lecture du QR passe par l'API native `BarcodeDetector` (`features/permis/utils/qrScanner.ts`, sans dépendance) ; une douchette USB fonctionne comme une saisie clavier ;
+  - le résultat s'affiche en grand avec les éléments à contrôler sur la pièce d'identité ; chaque contrôle est tracé par le backend.
 - **Mode observation** : tant que le backend a `RBAC_ENFORCED=False`, `/me` renvoie toutes les permissions sauf le médical. L'interface montre donc tout, sauf l'infirmerie (réservée à PERSONNEL_SANTE).
 
 ---
