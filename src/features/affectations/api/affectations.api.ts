@@ -20,8 +20,8 @@ export const endAffectation = async (id: number): Promise<Affectation> => {
   return data;
 };
 
-export const useGetAffectations = () =>
-  useQuery({ queryKey: ["affectations"], queryFn: getAffectations, staleTime: 60 * 1000 });
+export const useGetAffectations = (options?: { enabled?: boolean }) =>
+  useQuery({ queryKey: ["affectations"], queryFn: getAffectations, staleTime: 60 * 1000, enabled: options?.enabled ?? true });
 
 export const useCreateAffectation = () => {
   const queryClient = useQueryClient();

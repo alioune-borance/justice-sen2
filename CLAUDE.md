@@ -331,7 +331,11 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - autres rôles → `Dashboard` de l'établissement.
   Le libellé de l'accueil dans le menu suit le rôle ; `hideFor` retire les entrées qui feraient doublon avec l'accueil.
 - **Comptes et proches (phase 5)** :
-  - `/users` (`pages/users/UsersPage.tsx`) : liste, création, désactivation des comptes ;
+  - `/users` (`pages/users/UsersPage.tsx` + `UserForm.tsx`) : liste, création, modification et désactivation des comptes.
+    - Rôles proposés : `assignable_roles` de `/me` ; boutons limités aux comptes dont le rôle est attribuable.
+    - Établissement affiché et obligatoire si `roleRequiresPrison(rôle)` ; imposé (non modifiable) pour l'ADMIN_PRISON.
+    - Proche : un ou plusieurs détenus (`links`) à la création ; ensuite, via `/proches`.
+    - Acteur judiciaire : affectations créées après le compte par `judicial-assignments/` (si `judicial_assignments:create`).
   - `/proches` : file de validation des proches (pièces téléchargées via l'API, jamais par URL media) ;
   - `/affectations` : affectations judiciaires, gérées par le SA ;
   - `/inscription` (public) : inscription d'un proche ;
