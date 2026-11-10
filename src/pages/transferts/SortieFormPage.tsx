@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, LogOut } from 'lucide-react';
 import { useCreateSortie, useGetSortieById, useUpdateSortie } from '../../features/sorties/api/useGetSortie';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, isMovable } from '../../features/detenus/types/detenu';
 
 export const SortieFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -141,9 +141,12 @@ export const SortieFormPage: React.FC = () => {
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Sélectionner un détenu</option>
-                      {detenusList.map((d: Detenu) => (
-                        <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
-                      ))}
+                      {/* Prévenus et condamnés seulement (le détenu déjà choisi reste affiché en modification) */}
+                      {detenusList
+                        .filter((d: Detenu) => isMovable(d) || String(d.id) === String(formData.prisoner))
+                        .map((d: Detenu) => (
+                          <option key={d.id} value={d.id}>{d.first_name} {d.last_name} ({d.status})</option>
+                        ))}
                     </select>
                     {isLoadingDetenus && <p className="text-xs text-gray-500 mt-1">Chargement des détenus...</p>}
                   </div>

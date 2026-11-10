@@ -3,7 +3,6 @@ import { Plus, Search, UserCheck, UserX, Users as UsersIcon, X } from "lucide-re
 import { useGetUsers, useCreateUser, useSetUserActive } from "../../features/users/api/useUsers";
 import {
   ACCOUNT_STATUS_LABELS,
-  ADMIN_PRISON_ASSIGNABLE,
   AppUser,
   CreateUserDto,
   PRISON_ROLES_LIST,
@@ -41,9 +40,10 @@ const EMPTY_FORM = {
   motivation: "",
 };
 
-// Gestion des comptes : SUPER_ADMIN (tous) ; ADMIN_PRISON (sa prison et les proches de ses détenus, D5)
+// Gestion des comptes : SUPER_ADMIN (tous les rôles) ; ADMIN_PRISON (rôles prison de son établissement ;
+// il voit les proches de ses détenus mais ne gère pas leurs comptes)
 export const UsersPage: React.FC = () => {
-  const { user, role } = usePermissions();
+  const { user, role, isMyPrison } = usePermissions();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -58,7 +58,8 @@ export const UsersPage: React.FC = () => {
   const setActive = useSetUserActive();
 
   const isAdminPrison = role === "ADMIN_PRISON" && !!user?.rbac_enforced;
-  const assignableRoles: Role[] = isAdminPrison ? ADMIN_PRISON_ASSIGNABLE : (Object.keys(ROLE_LABELS) as Role[]);
+  // Rôles attribuables donnés par le backend (GET auth/me/) : l'ADMIN_PRISON n'attribue que les rôles prison
+  const assignableRoles: Role[] = (user?.assignable_roles ?? []).map((r) => r.value);
   const needsPrison = PRISON_ROLES_LIST.includes(form.role);
   const isRelative = form.role === "PROCHE_REFERENT";
   const lienNonParent = LIENS_PARENTE.find((l) => l.value === form.lien_parente)?.nonParent;
@@ -256,7 +257,8 @@ export const UsersPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-3">
-                    <Can perm="users:update" when={u.id !== user?.id}>
+                    {/* ADMIN_PRISON : seulement le personnel de sa prison (pas les comptes des proches) */}
+                    <Can perm="users:update" when={u.id !== user?.id && (!isAdminPrison || isMyPrison(u.prison))}>
                       <button onClick={() => toggleActive(u)} disabled={setActive.isPending}
                         className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
                         title={u.is_active ? "Désactiver" : "Réactiver"}>

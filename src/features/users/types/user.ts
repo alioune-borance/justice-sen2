@@ -70,5 +70,4 @@ export const ACCOUNT_STATUS_LABELS: Record<string, string> = {
 
 export const PRISON_ROLES_LIST: Role[] = ["ADMIN_PRISON", "SUPERVISEUR_PRISON", "AGENT_PENITENTIAIRE", "PERSONNEL_SANTE"];
 
-// Rôles qu'un administrateur de prison peut attribuer (D5)
-export const ADMIN_PRISON_ASSIGNABLE: Role[] = [...PRISON_ROLES_LIST, "PROCHE_REFERENT"];
+// Rôles attribuables : fournis par le backend (GET auth/me/ → assignable_roles), plus de liste en dur ici.

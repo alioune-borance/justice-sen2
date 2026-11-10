@@ -35,6 +35,7 @@ import { AccountStatusPage } from '../../pages/errors/AccountStatusPage';
 import { UsersPage } from '../../pages/users/UsersPage';
 import { ProchesValidationPage } from '../../pages/proches/ProchesValidationPage';
 import { AffectationsPage } from '../../pages/affectations/AffectationsPage';
+import { EtablissementsPage } from '../../pages/prisons/EtablissementsPage';
 import { RegisterPage } from '../../pages/register/RegisterPage';
 
 // Garde d'affichage : le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé
@@ -164,6 +165,11 @@ export const router = createBrowserRouter([
               {
                 path: "affectations",
                 element: guard('judicial_assignments:read', <AffectationsPage />),
+              },
+              {
+                // Création : SUPER_ADMIN ; modification : SUPER_ADMIN ou ADMIN_PRISON (le sien)
+                path: "etablissements",
+                element: guard(['prisons:create', 'prisons:update'], <EtablissementsPage />),
               },
               {
                 path: "settings",

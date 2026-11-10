@@ -39,5 +39,7 @@ export interface User {
   scope: UserScope;
   permissions: Permission[];
   links: unknown[];
+  // Rôles que ce compte peut attribuer (SUPER_ADMIN : tous ; ADMIN_PRISON : rôles prison ; autres : aucun)
+  assignable_roles: { value: Role; label: string }[];
   rbac_enforced: boolean;
 }

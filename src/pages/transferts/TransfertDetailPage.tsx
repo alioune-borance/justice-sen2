@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, Truck } from 'lucide-react';
+import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, Truck, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { useGetTransfertById, useGetTransferts, useTransfertDecision } from '../../features/transferts/api/useGetTransfert';
 import { TransfertAction } from '../../features/transferts/api/transferts.api';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
@@ -95,6 +95,44 @@ export const TransfertDetailPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-slate-800">Détail du transfert</h1>
         <div className="w-24"></div>
       </div>
+
+      {/* Validation attendue : bandeau en tête de page, visible sans défiler (prison source, SP ou AP) */}
+      {transfert && (
+        <Can perm="transfers:validate" when={isPending && isMyPrison(transfert.from_prison)}>
+          <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-7 w-7 text-amber-600 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-amber-900">Ce transfert attend votre validation</p>
+                <p className="text-sm text-amber-800">
+                  {getDetenuName(transfert.prisoner)} : {getTransfertFrom(transfert.from_prison)} vers {getTransfertTo(transfert.to_prison)}
+                </p>
+                {decision.isError && (
+                  <p className="text-sm text-red-700 mt-1">{getApiErrorMessage(decision.error)}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => decide('reject')}
+                disabled={decision.isPending}
+                className="px-5 py-3 border-2 border-red-500 text-red-700 font-semibold rounded-lg hover:bg-red-50 disabled:opacity-50 flex items-center gap-2"
+              >
+                <XCircle className="h-5 w-5" />
+                Refuser
+              </button>
+              <button
+                onClick={() => decide('approve')}
+                disabled={decision.isPending}
+                className="px-6 py-3 bg-green-600 text-white text-base font-semibold rounded-lg shadow hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                <CheckCircle className="h-5 w-5" />
+                Valider le transfert
+              </button>
+            </div>
+          </div>
+        </Can>
+      )}
 
       {/* Main Card */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200">
@@ -278,8 +316,9 @@ export const TransfertDetailPage: React.FC = () => {
               <button
                 onClick={() => decide('approve')}
                 disabled={decision.isPending}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="px-5 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
               >
+                <CheckCircle className="h-4 w-4" />
                 Valider le transfert
               </button>
             </Can>

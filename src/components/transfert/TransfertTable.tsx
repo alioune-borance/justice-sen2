@@ -13,6 +13,9 @@ interface TransfertTableProps {
   onAddTransfert?: () => void;
   onEditTransfert?: (transfert: TransfertTableRow) => void;
   canEditTransfert?: (transfert: TransfertTableRow) => boolean;
+  onDecideTransfert?: (transfert: TransfertTableRow, action: 'approve' | 'reject') => void;
+  canDecideTransfert?: (transfert: TransfertTableRow) => boolean;
+  decidingTransfertId?: number | null;
   onAddSortie?: () => void;
   onEditSortie?: (sortie: SortieTableRow) => void;
   onDecideSortie?: (sortie: SortieTableRow, action: 'approve' | 'reject') => void;
@@ -27,6 +30,9 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
   onAddTransfert,
   onEditTransfert,
   canEditTransfert = () => true,
+  onDecideTransfert,
+  canDecideTransfert = () => false,
+  decidingTransfertId = null,
   onAddSortie,
   onEditSortie,
   onDecideSortie,
@@ -77,8 +83,13 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
     }).length;
   };
 
+  // Transferts que l'utilisateur peut valider (en attente, de sa prison, SP ou AP)
+  const isAwaitingMyDecision = (t: TransfertTableRow) =>
+    !!onDecideTransfert && t.status === 'PENDING' && canDecideTransfert(t);
+  const awaitingMyDecision = tranferts.filter(isAwaitingMyDecision);
+
   const statistics = {
-    total: tranferts.length,
+    total: tranferts.filter(t => t.status === 'PENDING').length,
     transfertsToDay: getCountTransfertsToday(),
     sorties: sorties.length,
   };
@@ -118,6 +129,18 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
           </button>
         )}
       </div>
+
+      {awaitingMyDecision.length > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-400 rounded-lg px-4 py-3 flex items-center gap-3">
+          <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0" />
+          <p className="text-amber-900 font-medium">
+            {awaitingMyDecision.length === 1
+              ? '1 transfert attend votre validation'
+              : `${awaitingMyDecision.length} transferts attendent votre validation`}
+            <span className="font-normal text-amber-800"> : ils sont en tête de liste.</span>
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="flex-1">
@@ -173,8 +196,14 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
           <tbody className="divide-y divide-gray-200">
             {filteredTransferts.length === 0 ? (
               <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500 text-sm">Aucun transfert trouvé</td></tr>
-            ) : filteredTransferts.map((transfert) => (
-              <tr key={`${transfert.id}-${transfert.detenu_name}`} className="hover:bg-gray-50">
+            ) : [...filteredTransferts]
+                // Ceux qui attendent la décision de l'utilisateur d'abord
+                .sort((a, b) => Number(isAwaitingMyDecision(b)) - Number(isAwaitingMyDecision(a)))
+                .map((transfert) => (
+              <tr
+                key={`${transfert.id}-${transfert.detenu_name}`}
+                className={isAwaitingMyDecision(transfert) ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50'}
+              >
                 <td className="px-4 py-3">{transfert.detenu_name}</td>
                 <td className="px-4 py-3">{transfert.type_transfert}</td>
                 <td className="px-4 py-3">{transfert.motif}</td>
@@ -186,7 +215,26 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
                   <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(transfert.status)}`}>{transfert.status}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex space-x-2">
+                  <div className="flex items-center space-x-2">
+                    {isAwaitingMyDecision(transfert) && onDecideTransfert && (
+                      <>
+                        <button
+                          onClick={() => onDecideTransfert(transfert, 'approve')}
+                          disabled={decidingTransfertId === transfert.id}
+                          className="px-3 py-1.5 bg-green-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Valider
+                        </button>
+                        <button
+                          onClick={() => onDecideTransfert(transfert, 'reject')}
+                          disabled={decidingTransfertId === transfert.id}
+                          className="px-3 py-1.5 border border-red-400 text-red-700 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50"
+                        >
+                          Refuser
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={() => onViewDetail(transfert.id)}
                       className="p-1 text-blue-600 hover:text-blue-800"

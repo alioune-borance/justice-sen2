@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable';
 import { TransfertTable } from '../../components/transfert/TransfertTable';
 import { TransfertTableRow } from '../../features/transferts/types/transfert';
 import { useNavigate } from 'react-router-dom';
-import { useGetTransferts } from '../../features/transferts/api/useGetTransfert';
+import { useGetTransferts, useTransfertDecision } from '../../features/transferts/api/useGetTransfert';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Detenu } from '../../features/detenus/types/detenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
@@ -21,6 +21,16 @@ export const TransfertListPage: React.FC = () => {
   const { data: transferts = [], isLoading } = useGetTransferts({ enabled: can('transfers:read') });
   const { data: sorties = [] } = useGetSorties({ enabled: can('exits:read') });
   const sortieDecision = useSortieDecision();
+  const transfertDecision = useTransfertDecision();
+
+  const handleDecideTransfert = (transfert: TransfertTableRow, action: 'approve' | 'reject') => {
+    const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
+    if (reason === null) return; // annulé
+    transfertDecision.mutate(
+      { id: transfert.id, action, reason: reason || undefined },
+      { onError: (error) => window.alert(getApiErrorMessage(error)) },
+    );
+  };
 
   const handleDecideSortie = (sortie: SortieTableRow, action: 'approve' | 'reject') => {
     const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
@@ -209,6 +219,10 @@ export const TransfertListPage: React.FC = () => {
           onEditTransfert={can('transfers:update') ? (t) => navigate(`/transfers/update/${t.id}`) : undefined}
           // Seul un transfert en attente, de la prison de l'utilisateur, est modifiable
           canEditTransfert={(t) => t.status === 'PENDING' && isMyPrison(t.from_prison)}
+          // Validation par la prison source (SP ou AP), directement depuis la liste
+          onDecideTransfert={can('transfers:validate') ? handleDecideTransfert : undefined}
+          canDecideTransfert={(t) => isMyPrison(t.from_prison)}
+          decidingTransfertId={transfertDecision.isPending ? transfertDecision.variables?.id ?? null : null}
           onAddSortie={can('exits:create') ? () => navigate('/transfers/sorties/new') : undefined}
           onEditSortie={can('exits:update') ? (s) => navigate(`/transfers/sorties/update/${s.id}`) : undefined}
           onDecideSortie={can('exits:validate') ? handleDecideSortie : undefined}

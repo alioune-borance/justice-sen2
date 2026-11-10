@@ -13,6 +13,7 @@ import {
   HeartHandshake,
   UserCog,
   Gavel,
+  Building2,
 } from 'lucide-react';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { Permission, Role } from '../../features/auth/types/user.types';
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/proches', label: 'Proches à valider', icon: <HeartHandshake className="h-5 w-5" />, anyOf: ['relative_links:validate'] },
   { path: '/users', label: 'Utilisateurs', icon: <UserCog className="h-5 w-5" />, anyOf: ['users:read'] },
   { path: '/affectations', label: 'Affectations judiciaires', icon: <Gavel className="h-5 w-5" />, anyOf: ['judicial_assignments:read'] },
+  { path: '/etablissements', label: 'Établissements', icon: <Building2 className="h-5 w-5" />, anyOf: ['prisons:create', 'prisons:update'] },
   { path: '/security', label: 'Sécurité', icon: <Shield className="h-5 w-5" />, roles: ['SUPER_ADMIN'] },
   { path: '/settings', label: 'Paramètres', icon: <Settings className="h-5 w-5" />, roles: ['SUPER_ADMIN'] },
 ];

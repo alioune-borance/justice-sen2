@@ -18,6 +18,9 @@ const FIELD_LABELS: Record<string, string> = {
   purpose: 'Motif de la visite',
   status: 'Statut',
   prison: 'Prison',
+  location: 'Localisation',
+  capacity: 'Capacité',
+  type: "Type d'établissement",
 };
 
 // Traductions des noms de modèle / champs tels qu'ils apparaissent dans les phrases du backend (ex: "visitor with this email already exists.")
