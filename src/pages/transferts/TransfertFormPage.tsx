@@ -7,6 +7,7 @@ import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { Detenu, isMovable } from '../../features/detenus/types/detenu';
 import { Prison } from '../../features/prisons/types/prison';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
 
 export const TransfertFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,9 @@ export const TransfertFormPage: React.FC = () => {
   const { data: transfert, isLoading: isLoadingTransfert } = useGetTransfertById(transfertId || 0);
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
+  // La liste des détenus contient aussi, en lecture seule, les anciens détenus et les transferts entrants
+  // validés : seuls ceux actuellement dans la prison de l'utilisateur peuvent faire l'objet d'un transfert
+  const { isMyPrison } = usePermissions();
 
   const createMutation = useCreateTransfert();
   const updateMutation = useUpdateTransfert();
@@ -158,7 +162,7 @@ export const TransfertFormPage: React.FC = () => {
                       <option value="">Sélectionner un détenu</option>
                       {/* Prévenus et condamnés seulement (le détenu déjà choisi reste affiché en modification) */}
                       {detenusList
-                        .filter((d: Detenu) => isMovable(d) || String(d.id) === String(formData.prisoner))
+                        .filter((d: Detenu) => (isMovable(d) && isMyPrison(d.prison)) || String(d.id) === String(formData.prisoner))
                         .map((d: Detenu) => (
                           <option key={d.id} value={d.id}>{d.first_name} {d.last_name} ({d.status})</option>
                         ))}

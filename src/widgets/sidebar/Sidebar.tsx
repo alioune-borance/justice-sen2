@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { useRole } from '../../features/auth/hooks/useRole';
-import { PRISONER_LINKED_ROLES, ROUTE_ACCESS, RoutePath } from '../../features/auth/config/rbac';
+import { PRISONER_LINKED_ROLES, ROUTE_ACCESS, RoutePath, isScreenAllowed } from '../../features/auth/config/rbac';
 import { Role } from '../../features/auth/types/user.types';
 
 interface NavItem {
@@ -65,6 +65,8 @@ export const Sidebar: React.FC = () => {
   // Masquage d'affichage seulement : le backend filtre les données et refuse les actions
   const navItems = NAV_ITEMS
     .filter((item) => !(role && item.hideFor?.includes(role)))
+    // Rôle limité à certains écrans (ROLE_SCREENS) : l'accueil et les autres entrées disparaissent
+    .filter((item) => isScreenAllowed(role, item.path))
     .filter((item) => item.path === '/' || allows(ROUTE_ACCESS[item.path]))
     .map((item) => (item.path === '/' ? { ...item, label: homeLabel } : item));
   const title = user?.prison?.name ?? (user?.scope.type === 'national' ? 'Niveau national' : 'Gestion pénitentiaire');

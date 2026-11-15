@@ -5,6 +5,7 @@ import { ArrowLeft, Save, X, LogOut } from 'lucide-react';
 import { useCreateSortie, useGetSortieById, useUpdateSortie } from '../../features/sorties/api/useGetSortie';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Detenu, isMovable } from '../../features/detenus/types/detenu';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
 
 export const SortieFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,8 @@ export const SortieFormPage: React.FC = () => {
 
   const { data: sortie, isLoading: isLoadingSortie } = useGetSortieById(sortieId || 0);
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
+  // Seuls les détenus actuellement dans la prison de l'utilisateur (pas l'historique ni les transferts entrants)
+  const { isMyPrison } = usePermissions();
 
   const createMutation = useCreateSortie();
   const updateMutation = useUpdateSortie();
@@ -143,7 +146,7 @@ export const SortieFormPage: React.FC = () => {
                       <option value="">Sélectionner un détenu</option>
                       {/* Prévenus et condamnés seulement (le détenu déjà choisi reste affiché en modification) */}
                       {detenusList
-                        .filter((d: Detenu) => isMovable(d) || String(d.id) === String(formData.prisoner))
+                        .filter((d: Detenu) => (isMovable(d) && isMyPrison(d.prison)) || String(d.id) === String(formData.prisoner))
                         .map((d: Detenu) => (
                           <option key={d.id} value={d.id}>{d.first_name} {d.last_name} ({d.status})</option>
                         ))}

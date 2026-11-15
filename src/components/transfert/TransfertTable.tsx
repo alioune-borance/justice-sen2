@@ -16,6 +16,9 @@ interface TransfertTableProps {
   onDecideTransfert?: (transfert: TransfertTableRow, action: 'approve' | 'reject') => void;
   canDecideTransfert?: (transfert: TransfertTableRow) => boolean;
   decidingTransfertId?: number | null;
+  // Arrivée d'un transfert validé, signalée par la prison de destination (AG, SP ou AP, D21)
+  onCompleteTransfert?: (transfert: TransfertTableRow) => void;
+  canCompleteTransfert?: (transfert: TransfertTableRow) => boolean;
   onAddSortie?: () => void;
   onEditSortie?: (sortie: SortieTableRow) => void;
   onDecideSortie?: (sortie: SortieTableRow, action: 'approve' | 'reject') => void;
@@ -33,6 +36,8 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
   onDecideTransfert,
   canDecideTransfert = () => false,
   decidingTransfertId = null,
+  onCompleteTransfert,
+  canCompleteTransfert = () => false,
   onAddSortie,
   onEditSortie,
   onDecideSortie,
@@ -87,6 +92,12 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
   const isAwaitingMyDecision = (t: TransfertTableRow) =>
     !!onDecideTransfert && t.status === 'PENDING' && canDecideTransfert(t);
   const awaitingMyDecision = tranferts.filter(isAwaitingMyDecision);
+  // Transferts validés à destination de la prison de l'utilisateur : arrivée à enregistrer
+  const isAwaitingMyReception = (t: TransfertTableRow) =>
+    !!onCompleteTransfert && t.status === 'APPROVED' && canCompleteTransfert(t);
+  const awaitingMyReception = tranferts.filter(isAwaitingMyReception);
+  // Ordre d'affichage : à valider, puis à réceptionner, puis le reste
+  const actionRank = (t: TransfertTableRow) => (isAwaitingMyDecision(t) ? 2 : isAwaitingMyReception(t) ? 1 : 0);
 
   const statistics = {
     total: tranferts.filter(t => t.status === 'PENDING').length,
@@ -138,6 +149,18 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
               ? '1 transfert attend votre validation'
               : `${awaitingMyDecision.length} transferts attendent votre validation`}
             <span className="font-normal text-amber-800"> : ils sont en tête de liste.</span>
+          </p>
+        </div>
+      )}
+
+      {awaitingMyReception.length > 0 && (
+        <div className="bg-sky-50 border-2 border-sky-400 rounded-lg px-4 py-3 flex items-center gap-3">
+          <Truck className="h-6 w-6 text-sky-600 flex-shrink-0" />
+          <p className="text-sky-900 font-medium">
+            {awaitingMyReception.length === 1
+              ? '1 détenu transféré est attendu dans votre établissement'
+              : `${awaitingMyReception.length} détenus transférés sont attendus dans votre établissement`}
+            <span className="font-normal text-sky-800"> : réceptionnez-les à leur arrivée (en tête de liste).</span>
           </p>
         </div>
       )}
@@ -197,12 +220,14 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
             {filteredTransferts.length === 0 ? (
               <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500 text-sm">Aucun transfert trouvé</td></tr>
             ) : [...filteredTransferts]
-                // Ceux qui attendent la décision de l'utilisateur d'abord
-                .sort((a, b) => Number(isAwaitingMyDecision(b)) - Number(isAwaitingMyDecision(a)))
+                // Ceux qui attendent une action de l'utilisateur d'abord (validation, puis réception)
+                .sort((a, b) => actionRank(b) - actionRank(a))
                 .map((transfert) => (
               <tr
                 key={`${transfert.id}-${transfert.detenu_name}`}
-                className={isAwaitingMyDecision(transfert) ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50'}
+                className={isAwaitingMyDecision(transfert)
+                  ? 'bg-amber-50 hover:bg-amber-100'
+                  : isAwaitingMyReception(transfert) ? 'bg-sky-50 hover:bg-sky-100' : 'hover:bg-gray-50'}
               >
                 <td className="px-4 py-3">{transfert.detenu_name}</td>
                 <td className="px-4 py-3">{transfert.type_transfert}</td>
@@ -234,6 +259,16 @@ export const TransfertTable: React.FC<TransfertTableProps> = ({
                           Refuser
                         </button>
                       </>
+                    )}
+                    {isAwaitingMyReception(transfert) && onCompleteTransfert && (
+                      <button
+                        onClick={() => onCompleteTransfert(transfert)}
+                        disabled={decidingTransfertId === transfert.id}
+                        className="px-3 py-1.5 bg-sky-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-sky-700 disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                      >
+                        <Truck className="h-4 w-4" />
+                        Réceptionner le détenu
+                      </button>
                     )}
                     <button
                       onClick={() => onViewDetail(transfert.id)}

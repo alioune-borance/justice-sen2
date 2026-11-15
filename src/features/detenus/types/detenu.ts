@@ -19,6 +19,8 @@ export interface Detenu {
 // Seuls ces détenus peuvent être transférés ou sortir (règle vérifiée aussi par le backend)
 export const MOVABLE_STATUSES = ['Prévenu', 'Condamné'];
 export const isMovable = (detenu: Pick<Detenu, 'status'>) => MOVABLE_STATUSES.includes(detenu.status);
+// Détenus présents dans l'établissement (prévenus ou condamnés) : seuls à recevoir un nouveau dossier médical
+export const isInCustody = isMovable;
 
 // For creating (without id)
 export type CreateDetenuDto = Omit<Detenu, 'id'>;

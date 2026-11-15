@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { usePermissions } from "../hooks/usePermissions";
-import { AccessRule, ROUTE_ACCESS, RoutePath } from "../config/rbac";
+import { AccessRule, HOME_REDIRECT, ROUTE_ACCESS, RoutePath, isScreenAllowed } from "../config/rbac";
 
 export const FORBIDDEN_PATH = "/403";
 
@@ -19,6 +19,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ path, rule, chil
   const { user, allows } = usePermissions();
   const location = useLocation();
   if (!user) return null;
+
+  // Rôle limité à certains écrans (ROLE_SCREENS) : renvoyé vers son écran d'accueil
+  if (path && !isScreenAllowed(user.role, path)) {
+    const home = user.role ? HOME_REDIRECT[user.role] : undefined;
+    return <Navigate to={home ?? FORBIDDEN_PATH} replace state={{ from: location.pathname }} />;
+  }
 
   const effectiveRule = rule ?? (path ? ROUTE_ACCESS[path] : undefined);
   if (!allows(effectiveRule)) {

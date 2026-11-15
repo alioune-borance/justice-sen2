@@ -29,6 +29,8 @@ export const TransfertDetailPage: React.FC = () => {
     if (!transfert) return;
     const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
     if (reason === null) return; // annulé
+    // L'arrivée change l'établissement du détenu : confirmation
+    if (action === 'complete' && !window.confirm(`Confirmer l'arrivée de ${getDetenuName(transfert.prisoner)} dans votre établissement ?`)) return;
     decision.mutate({ id: transfert.id, action, reason: reason || undefined });
   };
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
@@ -130,6 +132,35 @@ export const TransfertDetailPage: React.FC = () => {
                 Valider le transfert
               </button>
             </div>
+          </div>
+        </Can>
+      )}
+
+      {/* Arrivée attendue : bandeau en tête de page (prison de destination : AG, SP ou AP, D21) */}
+      {transfert && (
+        <Can perm="transfers:complete" when={transfert.status === 'APPROVED' && isMyPrison(transfert.to_prison)}>
+          <div className="bg-sky-50 border-2 border-sky-400 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <Truck className="h-7 w-7 text-sky-600 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-sky-900">Détenu attendu dans votre établissement</p>
+                <p className="text-sm text-sky-800">
+                  {getDetenuName(transfert.prisoner)} : transfert validé depuis {getTransfertFrom(transfert.from_prison)}.
+                  Réceptionnez-le à son arrivée.
+                </p>
+                {decision.isError && (
+                  <p className="text-sm text-red-700 mt-1">{getApiErrorMessage(decision.error)}</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => decide('complete')}
+              disabled={decision.isPending}
+              className="px-6 py-3 bg-sky-600 text-white text-base font-semibold rounded-lg shadow hover:bg-sky-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              <Truck className="h-5 w-5" />
+              Réceptionner le détenu
+            </button>
           </div>
         </Can>
       )}
@@ -327,8 +358,9 @@ export const TransfertDetailPage: React.FC = () => {
               <button
                 onClick={() => decide('complete')}
                 disabled={decision.isPending}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="px-5 py-2 bg-sky-600 text-white font-semibold rounded-lg shadow hover:bg-sky-700 disabled:opacity-50 flex items-center gap-2"
               >
+                <Truck className="h-4 w-4" />
                 Réceptionner le détenu
               </button>
             </Can>

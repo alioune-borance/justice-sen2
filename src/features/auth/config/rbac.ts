@@ -178,6 +178,19 @@ export const HOME_REDIRECT: Partial<Record<Role, string>> = {
   PERSONNEL_SANTE: "/infirmerie",
 };
 
+// ── Écrans réservés par rôle ───────────────────────────────────────────────────────────────────
+// Rôles limités à certains écrans, même s'ils ont d'autres droits de lecture côté API (le personnel de
+// santé lit les détenus pour choisir un patient, mais n'a que l'Infirmerie). Préfixes de chemins ;
+// rôle absent = pas de restriction. Affichage seulement : le backend garde ses propres règles.
+export const ROLE_SCREENS: Partial<Record<Role, string[]>> = {
+  PERSONNEL_SANTE: ["/infirmerie"],
+};
+
+export const isScreenAllowed = (role: Role | null | undefined, path: string): boolean => {
+  const screens = role ? ROLE_SCREENS[role] : undefined;
+  return !screens || screens.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+};
+
 // ── Statut du compte ───────────────────────────────────────────────────────────────────────────
 // Codes 403 du backend qui concernent le compte lui-même (et non une action)
 export const ACCOUNT_ERROR_CODES = {

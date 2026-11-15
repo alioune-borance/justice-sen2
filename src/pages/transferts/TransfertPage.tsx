@@ -32,6 +32,15 @@ export const TransfertListPage: React.FC = () => {
     );
   };
 
+  // Arrivée du détenu dans la prison de destination : il change d'établissement (confirmation demandée)
+  const handleCompleteTransfert = (transfert: TransfertTableRow) => {
+    if (!window.confirm(`Confirmer l'arrivée de ${transfert.detenu_name} dans votre établissement ?`)) return;
+    transfertDecision.mutate(
+      { id: transfert.id, action: 'complete' },
+      { onError: (error) => window.alert(getApiErrorMessage(error)) },
+    );
+  };
+
   const handleDecideSortie = (sortie: SortieTableRow, action: 'approve' | 'reject') => {
     const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
     if (reason === null) return; // annulé
@@ -222,6 +231,9 @@ export const TransfertListPage: React.FC = () => {
           // Validation par la prison source (SP ou AP), directement depuis la liste
           onDecideTransfert={can('transfers:validate') ? handleDecideTransfert : undefined}
           canDecideTransfert={(t) => isMyPrison(t.from_prison)}
+          // Réception par la prison de destination (AG, SP ou AP), directement depuis la liste
+          onCompleteTransfert={can('transfers:complete') ? handleCompleteTransfert : undefined}
+          canCompleteTransfert={(t) => isMyPrison(t.to_prison)}
           decidingTransfertId={transfertDecision.isPending ? transfertDecision.variables?.id ?? null : null}
           onAddSortie={can('exits:create') ? () => navigate('/transfers/sorties/new') : undefined}
           onEditSortie={can('exits:update') ? (s) => navigate(`/transfers/sorties/update/${s.id}`) : undefined}

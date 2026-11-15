@@ -4,13 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, Stethoscope } from 'lucide-react';
 import { useAddHealthRecord } from '../../features/infirmerie/api/useGetInfirmerie';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, isInCustody } from '../../features/detenus/types/detenu';
 import { HealthRecord } from '../../features/infirmerie/types/infirmerie';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
 
 export const InfirmerieFormPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
   const addRecordMutation = useAddHealthRecord();
+  const { isMyPrison } = usePermissions();
+  // Seuls les détenus présents dans l'établissement : prévenus ou condamnés, actuellement dans sa prison
+  // (la liste reçue contient aussi, en lecture seule, les anciens détenus et les transferts entrants)
+  const patients = detenusList.filter((d: Detenu) => isInCustody(d) && isMyPrison(d.prison));
 
   const [prisonerId, setPrisonerId] = useState<string>('');
   const [record, setRecord] = useState<HealthRecord>({
@@ -56,7 +62,7 @@ export const InfirmerieFormPage: React.FC = () => {
     }
   };
 
-  const selectedDetenu = detenusList.find((d: Detenu) => d.id === parseInt(prisonerId));
+  const selectedDetenu = patients.find((d: Detenu) => d.id === parseInt(prisonerId));
 
   return (
     <div className="space-y-6">
@@ -107,13 +113,19 @@ export const InfirmerieFormPage: React.FC = () => {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50"
                   >
                     <option value="">-- Sélectionner un détenu --</option>
-                    {detenusList.map((d: Detenu) => (
+                    {patients.map((d: Detenu) => (
                       <option key={d.id} value={d.id}>
-                        {d.first_name} {d.last_name}{d.matricule_number ? ` — ${d.matricule_number}` : ''}
+                        {d.first_name} {d.last_name}{d.matricule_number ? ` — ${d.matricule_number}` : ''} ({d.status})
                       </option>
                     ))}
                   </select>
                   {errors.prisoner && <p className="text-red-500 text-xs mt-1">{errors.prisoner}</p>}
+                  {!isLoadingDetenus && patients.length === 0 && (
+                    <p className="text-gray-500 text-xs mt-1">Aucun détenu prévenu ou condamné dans votre établissement.</p>
+                  )}
+                  {addRecordMutation.isError && (
+                    <p className="text-red-600 text-sm mt-2">{getApiErrorMessage(addRecordMutation.error)}</p>
+                  )}
                 </div>
 
                 {/* Récapitulatif détenu */}
@@ -123,10 +135,14 @@ export const InfirmerieFormPage: React.FC = () => {
                     <span className="font-medium">{selectedDetenu.matricule_number}</span>
                     <span className="text-gray-500">Statut</span>
                     <span className="font-medium">{selectedDetenu.status}</span>
-                    <span className="text-gray-500">Incarcéré le</span>
-                    <span className="font-medium">
-                      {new Date(selectedDetenu.incarceration_date).toLocaleDateString('fr-FR')}
-                    </span>
+                    {selectedDetenu.incarceration_date && (
+                      <>
+                        <span className="text-gray-500">Incarcéré le</span>
+                        <span className="font-medium">
+                          {new Date(selectedDetenu.incarceration_date).toLocaleDateString('fr-FR')}
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
 

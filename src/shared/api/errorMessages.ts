@@ -67,7 +67,7 @@ const RULES: TranslationRule[] = [
   { pattern: /^ensure this field has at least (\d+) characters?\.?$/i, translate: (m) => `Ce champ doit contenir au moins ${m[1]} caractères.` },
   { pattern: /^ensure this value is greater than or equal to (\d+)\.?$/i, translate: (m) => `La valeur doit être supérieure ou égale à ${m[1]}.` },
   { pattern: /^ensure this value is less than or equal to (\d+)\.?$/i, translate: (m) => `La valeur doit être inférieure ou égale à ${m[1]}.` },
-  { pattern: /^invalid pk "?(.+?)"? - object does not exist\.?$/i, translate: (m) => `La valeur sélectionnée (${m[1]}) n'existe pas.` },
+  { pattern: /^invalid pk "?(.+?)"? - object does not exist\.?$/i, translate: (m) => `La valeur sélectionnée (${m[1]}) n'existe pas ou ne relève pas de votre établissement.` },
   { pattern: /^object with (.+) = (.+) does not exist\.?$/i, translate: (m) => `Aucun élément trouvé avec ${m[1]} = ${m[2]}.` },
   { pattern: /^end time must be after start time\.?$/i, translate: () => "L'heure de fin doit être postérieure à l'heure de début." },
   { pattern: /^start time must be before end time\.?$/i, translate: () => "L'heure de début doit être antérieure à l'heure de fin." },
