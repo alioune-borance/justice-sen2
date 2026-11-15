@@ -9,6 +9,7 @@ import {
 } from "../../features/demandes-visite/types/demande";
 import { EtatPermisBadge, HistoriqueDemandeList, PiecesDemandeList, StatutDemandeBadge } from "../../features/demandes-visite/components/DemandeParts";
 import { periodeDemande } from "../../features/demandes-visite/utils/periode";
+import { EtapesDemande } from "../../features/demandes-visite/components/EtapesDemande";
 import { formatDate, formatDateTime } from "../../shared/utils/dates";
 import { downloadPermis } from "../../features/permis/api/permis.api";
 import { Can } from "../../features/auth/components/Can";
@@ -92,10 +93,18 @@ export const MaDemandeDetailPage: React.FC = () => {
             Demande refusée{demande.motif_refus ? ` : ${demande.motif_refus}` : "."}
           </p>
         )}
-        {demande.statut === "SOUMISE" && demande.circuit === "JUDICIAIRE" && (
-          <p className="text-sm text-gray-500">Votre demande sera examinée par l'autorité judiciaire chargée du dossier.</p>
+        {demande.circuit === "JUDICIAIRE" && (demande.statut === "SOUMISE" || demande.statut === "EN_VERIFICATION") && (
+          <p className="text-sm text-gray-500">Votre demande est vérifiée par le greffe, puis transmise au magistrat chargé du dossier.</p>
+        )}
+        {demande.statut === "TRANSMISE" && (
+          <p className="text-sm text-gray-500">Pièces vérifiées : la demande attend la décision du magistrat.</p>
         )}
       </div>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h3 className="mb-4 font-semibold text-slate-800">Étapes de la demande</h3>
+        <EtapesDemande demande={demande} />
+      </section>
 
       {/* Permis émis à la validation */}
       {demande.permis && (

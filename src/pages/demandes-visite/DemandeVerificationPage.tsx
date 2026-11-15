@@ -10,6 +10,7 @@ import {
   StatutDemandeBadge,
 } from "../../features/demandes-visite/components/DemandeParts";
 import { periodeDemande } from "../../features/demandes-visite/utils/periode";
+import { EtapesDemande } from "../../features/demandes-visite/components/EtapesDemande";
 import { downloadPermis } from "../../features/permis/api/permis.api";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 import { useRole } from "../../features/auth/hooks/useRole";
@@ -114,6 +115,11 @@ export const DemandeVerificationPage: React.FC = () => {
         )}
         {demande.statut === "REFUSEE" && <p className="text-sm text-red-700">Motif du refus : {demande.motif_refus}</p>}
       </div>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h3 className="mb-4 font-semibold text-slate-800">Étapes de la demande</h3>
+        <EtapesDemande demande={demande} />
+      </section>
 
       {errors.length > 0 && (
         <ul className="list-inside list-disc rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

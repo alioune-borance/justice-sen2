@@ -105,7 +105,14 @@ export const PiecesDemandeList: React.FC<{ pieces: PieceDemande[]; review?: Piec
   );
 };
 
-// Historique horodaté (ajout seul) : qui a fait quoi, et quand
+// Auteur : nom et rôle (gestionnaires) ; rôle seul pour le proche (noms masqués par le backend)
+const auteurLabel = (entry: HistoriqueDemande) => {
+  const role = entry.auteur_role_label ?? (entry.auteur_role ? roleLabel(entry.auteur_role as Role) : null);
+  if (entry.auteur_nom && role && entry.auteur_nom !== "Système") return `${entry.auteur_nom} (${role})`;
+  return entry.auteur_nom ?? role ?? "—";
+};
+
+// Historique horodaté (ajout seul) : qui a fait quoi, à quelle étape, quand et pourquoi
 export const HistoriqueDemandeList: React.FC<{ historique: HistoriqueDemande[] }> = ({ historique }) => (
   <ol className="space-y-3">
     {[...historique]
@@ -121,9 +128,11 @@ export const HistoriqueDemandeList: React.FC<{ historique: HistoriqueDemande[] }
               )}
             </p>
             <p className="text-xs text-gray-500">
-              {formatDateTime(entry.horodatage)} — {entry.auteur_nom ?? (entry.auteur_role ? roleLabel(entry.auteur_role as Role) : "—")}
+              {formatDateTime(entry.horodatage)} — {auteurLabel(entry)}
+              {entry.etape_label && entry.etape !== "PROCHE" && <span> · {entry.etape_label}</span>}
             </p>
-            {entry.commentaire && <p className="text-gray-600">{entry.commentaire}</p>}
+            {entry.motif && <p className="text-gray-700">Motif : {entry.motif}</p>}
+            {entry.commentaire && entry.commentaire !== entry.motif && <p className="text-gray-600">{entry.commentaire}</p>}
           </div>
         </li>
       ))}
