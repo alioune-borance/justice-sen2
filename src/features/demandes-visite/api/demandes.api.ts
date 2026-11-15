@@ -16,6 +16,7 @@ export const getDemandes = async (filters?: DemandeFilters): Promise<DemandeVisi
       statut: filters?.statut || undefined,
       circuit: filters?.circuit || undefined,
       detenu: filters?.detenu || undefined,
+      etape: filters?.etape || undefined,
       sans_gestionnaire: filters?.sans_gestionnaire ? 1 : undefined,
     },
   });
@@ -50,8 +51,10 @@ export const addPieceDemande = async (id: number, type: TypePieceDemande, fichie
   return data;
 };
 
-// --- Transitions (proche : resubmit ; gestionnaires : take, request-documents, validate, reject) ---
-export type DemandeAction = "take" | "validate" | "reject" | "request-documents" | "resubmit";
+// --- Transitions -------------------------------------------------------------------------------
+// proche : resubmit ; greffier : take, request-documents, transmit, reject ;
+// magistrat (juge d'instruction / procureur) : validate, reject ; prison : take, request-documents, validate, reject
+export type DemandeAction = "take" | "transmit" | "validate" | "reject" | "request-documents" | "resubmit";
 
 export const postDemandeAction = async (
   id: number,

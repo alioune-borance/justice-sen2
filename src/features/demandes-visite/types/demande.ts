@@ -1,7 +1,12 @@
 import { PermisResume, VisiteurSupplementaire } from "../../permis/types/permis";
+import { Role } from "../../auth/types/user.types";
 
-// Demande de visite (GET visit-requests/), circuit : prévenu → JUDICIAIRE, condamné → PENITENTIAIRE
-export type StatutDemande = "SOUMISE" | "EN_VERIFICATION" | "INCOMPLETE" | "VALIDEE" | "REFUSEE";
+// Demande de visite (GET visit-requests/).
+// Circuit : prévenu ou accusé → JUDICIAIRE (greffe puis magistrat) ; condamné → PENITENTIAIRE (prison).
+export type StatutDemande = "SOUMISE" | "EN_VERIFICATION" | "INCOMPLETE" | "TRANSMISE" | "VALIDEE" | "REFUSEE";
+// Qui doit agir : greffe (étape 1), magistrat (étape 2), prison, proche (pièces), terminée
+export type EtapeDemande = "PROCHE" | "GREFFE" | "MAGISTRAT" | "PRISON" | "SYSTEME" | "TERMINEE";
+export type DecisionEtape = "TRANSMISE" | "VALIDEE" | "REFUSEE" | "INCOMPLETE" | "PIECE_VERIFIEE" | "PIECE_REJETEE";
 export type Circuit = "JUDICIAIRE" | "PENITENTIAIRE";
 export type StatutPieceDemande = "A_VERIFIER" | "VERIFIEE" | "REJETEE";
 export type TypePieceDemande = "DEMANDE_MANUSCRITE" | "PIECE_IDENTITE" | "PHOTO_IDENTITE" | "JUSTIFICATIF_LIEN" | "AUTRE";
@@ -31,6 +36,12 @@ export interface HistoriqueDemande {
   // null : masqué au proche (il voit le rôle) ; « Système » : règle automatique
   auteur_nom: string | null;
   auteur_role: string;
+  auteur_role_label: string | null;
+  etape: EtapeDemande | "";
+  etape_label: string;
+  decision: DecisionEtape | "";
+  decision_label: string;
+  motif: string;
   commentaire: string;
   horodatage: string;
 }
@@ -58,6 +69,13 @@ export interface DemandeVisite {
   motif_refus: string;
   commentaire_complement: string;
   traitee_par: number | null;
+  // Étape 1 du circuit judiciaire : greffier qui a transmis au magistrat
+  transmise_par: number | null;
+  transmise_le: string | null;
+  etape_courante: EtapeDemande;
+  etape_courante_label: string;
+  // Magistrat qui décide, d'après le statut actuel du détenu (prévenu → juge, accusé → procureur)
+  magistrat_attendu: Extract<Role, "JUGE_INSTRUCTION" | "PROCUREUR"> | null;
   cree_le: string;
   soumise_le: string | null;
   decidee_le: string | null;
@@ -80,12 +98,19 @@ export interface CreateDemandeDto {
   fichiers: Partial<Record<CreationFileField, File>>;
 }
 
-export type DemandeFilters = { statut?: string; circuit?: string; detenu?: number; sans_gestionnaire?: boolean };
+export type DemandeFilters = {
+  statut?: string;
+  circuit?: string;
+  detenu?: number;
+  etape?: EtapeDemande;
+  sans_gestionnaire?: boolean;
+};
 
 export const STATUT_DEMANDE_LABELS: Record<StatutDemande, string> = {
   SOUMISE: "Soumise",
   EN_VERIFICATION: "En vérification",
   INCOMPLETE: "Pièces à compléter",
+  TRANSMISE: "Transmise au magistrat",
   VALIDEE: "Validée",
   REFUSEE: "Refusée",
 };
@@ -94,6 +119,7 @@ export const STATUT_DEMANDE_STYLES: Record<StatutDemande, string> = {
   SOUMISE: "bg-blue-100 text-blue-800",
   EN_VERIFICATION: "bg-indigo-100 text-indigo-800",
   INCOMPLETE: "bg-amber-100 text-amber-800",
+  TRANSMISE: "bg-violet-100 text-violet-800",
   VALIDEE: "bg-green-100 text-green-800",
   REFUSEE: "bg-red-100 text-red-800",
 };
@@ -125,4 +151,13 @@ export const MAX_EXTRA_VISITORS = 2;
 export const MAX_VALIDITY_DAYS = 180;
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 
-export const OPEN_STATUSES: StatutDemande[] = ["SOUMISE", "EN_VERIFICATION", "INCOMPLETE"];
+export const OPEN_STATUSES: StatutDemande[] = ["SOUMISE", "EN_VERIFICATION", "INCOMPLETE", "TRANSMISE"];
+
+// Étape traitée par chaque rôle gestionnaire (file « À traiter »)
+export const STEP_BY_ROLE: Partial<Record<Role, EtapeDemande>> = {
+  GREFFIER: "GREFFE",
+  JUGE_INSTRUCTION: "MAGISTRAT",
+  PROCUREUR: "MAGISTRAT",
+  ADMIN_PRISON: "PRISON",
+  SUPERVISEUR_PRISON: "PRISON",
+};

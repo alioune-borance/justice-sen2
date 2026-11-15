@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FilePlus, Hand, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FilePlus, Hand, Info, Send, XCircle } from "lucide-react";
 import { useDemandeAction, useGetDemande, useReviewPieceDemande } from "../../features/demandes-visite/api/useDemandes";
 import { DemandeAction } from "../../features/demandes-visite/api/demandes.api";
 import {
@@ -12,19 +12,26 @@ import {
 import { periodeDemande } from "../../features/demandes-visite/utils/periode";
 import { downloadPermis } from "../../features/permis/api/permis.api";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
+import { useRole } from "../../features/auth/hooks/useRole";
+import { roleLabel } from "../../features/auth/config/rbac";
+import { STEP_BY_ROLE } from "../../features/demandes-visite/types/demande";
 import { formatDate, formatDateTime } from "../../shared/utils/dates";
 import { getApiErrorMessages } from "../../shared/api/errorMessages";
 
 type Dialog = { action: "request-documents" | "reject"; title: string; label: string; field: "commentaire" | "motif" } | null;
 
-// Gestionnaire (acteur judiciaire ou AP / SP) : vérification pièce par pièce puis décision.
-// Les boutons suivent les permissions et la fonction ; le backend reste seul juge (403, 400 invalid_state).
+// Gestionnaire : vérification pièce par pièce puis décision, selon l'étape en cours.
+//   circuit judiciaire : greffier (étape 1 : vérifie, transmet ou refuse), puis juge d'instruction (prévenu)
+//   ou procureur (accusé) (étape 2 : valide et émet le permis, ou refuse) ;
+//   circuit pénitentiaire : AP / SP (vérifie puis valide ou refuse).
+// Les boutons ne s'affichent qu'à l'étape de l'utilisateur ; le backend reste seul juge (403, 400 invalid_state).
 export const DemandeVerificationPage: React.FC = () => {
   const id = Number(useParams().id);
   const { data: demande, isLoading, isError } = useGetDemande(id);
   const action = useDemandeAction();
   const review = useReviewPieceDemande();
   const { can } = usePermissions();
+  const { role } = useRole();
 
   const [dialog, setDialog] = useState<Dialog>(null);
   const [text, setText] = useState("");
@@ -34,10 +41,18 @@ export const DemandeVerificationPage: React.FC = () => {
   if (isLoading) return <p className="text-gray-500">Chargement…</p>;
   if (isError || !demande) return <p className="text-red-600">Demande introuvable ou hors de votre périmètre.</p>;
 
-  const canInstruct = can("visit_requests:update");
-  const canDecide = can("visit_requests:validate");
-  const open = demande.statut === "SOUMISE" || demande.statut === "EN_VERIFICATION";
+  const myStep = role ? STEP_BY_ROLE[role] : undefined;
+  const step = demande.etape_courante;
+  // Est-ce mon étape ? Pour l'étape 2, seulement le magistrat attendu (d'après le statut du détenu)
+  const atMyStep = !!myStep && step === myStep && (step !== "MAGISTRAT" || demande.magistrat_attendu === role);
+  const isGreffe = step === "GREFFE";
+  // Instruire (prendre, vérifier les pièces, demander un complément) : greffe ou prison
+  const canInstruct = atMyStep && (isGreffe || step === "PRISON") && can("visit_requests:update");
+  // Décider son étape : le greffier transmet ou refuse ; le magistrat ou la prison valide ou refuse
+  const canDecide = atMyStep && can("visit_requests:validate");
+  const open = atMyStep;
   const blockers = demande.problemes_validation ?? [];
+  const magistrat = roleLabel(demande.magistrat_attendu).toLowerCase();
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setErrors([]);
@@ -125,6 +140,18 @@ export const DemandeVerificationPage: React.FC = () => {
         />
       </section>
 
+      {/* Demande hors de l'étape de l'utilisateur : consultation seulement */}
+      {!atMyStep && demande.statut !== "VALIDEE" && demande.statut !== "REFUSEE" && (
+        <div className="flex gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+          <Info className="h-4 w-4 flex-shrink-0" />
+          <p>
+            Étape en cours : {demande.etape_courante_label}
+            {step === "MAGISTRAT" && demande.magistrat_attendu ? ` (${roleLabel(demande.magistrat_attendu)})` : ""}.
+            Aucune action ne vous revient à cette étape.
+          </p>
+        </div>
+      )}
+
       {/* Décision */}
       {open && (canInstruct || canDecide) && (
         <section className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -146,18 +173,28 @@ export const DemandeVerificationPage: React.FC = () => {
             )}
             {canDecide && (
               <>
-                <ActionButton icon={CheckCircle2} label="Valider et émettre le permis" className="bg-green-600 hover:bg-green-700"
-                  disabled={pending || blockers.length > 0}
-                  title={blockers.length > 0 ? "Toutes les pièces doivent être vérifiées" : undefined}
-                  onClick={() => window.confirm("Valider la demande et émettre le permis de visite ?")
-                    && transition("validate", "Demande validée : le permis a été émis.")} />
+                {isGreffe ? (
+                  <ActionButton icon={Send} label={`Transmettre au ${magistrat}`} className="bg-violet-600 hover:bg-violet-700"
+                    disabled={pending || blockers.length > 0}
+                    title={blockers.length > 0 ? "Toutes les pièces doivent être vérifiées" : undefined}
+                    onClick={() => window.confirm(`Transmettre la demande vérifiée au ${magistrat} pour décision ?`)
+                      && transition("transmit", `Demande transmise au ${magistrat}.`)} />
+                ) : (
+                  <ActionButton icon={CheckCircle2} label="Valider et émettre le permis" className="bg-green-600 hover:bg-green-700"
+                    disabled={pending || blockers.length > 0}
+                    title={blockers.length > 0 ? "Toutes les pièces doivent être vérifiées" : undefined}
+                    onClick={() => window.confirm("Valider la demande et émettre le permis de visite ?")
+                      && transition("validate", "Demande validée : le permis a été émis.")} />
+                )}
                 <ActionButton icon={XCircle} label="Refuser" className="bg-red-600 hover:bg-red-700" disabled={pending}
                   onClick={() => { setDialog({ action: "reject", title: "Refuser la demande", label: "Motif du refus (obligatoire, visible par le proche)", field: "motif" }); setText(""); }} />
               </>
             )}
           </div>
-          {!canDecide && canInstruct && (
-            <p className="text-xs text-gray-500">Votre fonction sur ce dossier permet d'instruire la demande, pas de la décider.</p>
+          {step === "MAGISTRAT" && (
+            <p className="text-xs text-gray-500">
+              Pièces vérifiées par le greffe{demande.transmise_le ? `, transmise le ${formatDateTime(demande.transmise_le)}` : ""}.
+            </p>
           )}
 
           {dialog && (
