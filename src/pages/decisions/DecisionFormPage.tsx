@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCorrectDecision, useCreateDecision, useGetDecision } from "../../features/decisions/api/decisions.api";
 import {
   DEFAULT_EFFECT,
+  isSentenceProposal,
   MAX_DECISION_BYTES,
   STATUTS_PROPOSES,
   StatutPropose,
@@ -30,7 +31,7 @@ interface FormState {
   motif_correction: string;
 }
 
-// Acteur judiciaire : saisie d'une décision (/decisions/new) ou correction (/decisions/:id/correct, version n+1).
+// Greffier : saisie d'une décision (/decisions/new) ou correction (/decisions/:id/correct, version n+1).
 // L'effet sur le statut est seulement proposé : la prison l'applique ou l'écarte.
 export const DecisionFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -87,7 +88,7 @@ export const DecisionFormPage: React.FC = () => {
     set({
       type,
       statut_propose: statut,
-      date_liberation_proposee: statut === "Libéré" && !form.date_liberation_proposee ? form.date_decision : form.date_liberation_proposee,
+      date_liberation_proposee: statut === "LIBERE" && !form.date_liberation_proposee ? form.date_decision : form.date_liberation_proposee,
     });
   };
 
@@ -111,7 +112,7 @@ export const DecisionFormPage: React.FC = () => {
       resume: form.resume.trim(),
       document,
       statut_propose: form.statut_propose,
-      peine_proposee: form.statut_propose === "Condamné" && form.peine_proposee ? Number(form.peine_proposee) : null,
+      peine_proposee: isSentenceProposal(form.statut_propose) && form.peine_proposee ? Number(form.peine_proposee) : null,
       date_liberation_proposee: form.date_liberation_proposee || null,
     };
     try {
@@ -133,7 +134,7 @@ export const DecisionFormPage: React.FC = () => {
       <div className="max-w-3xl space-y-4">
         <BackLink />
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-amber-800">
-          Aucun détenu affecté ne vous permet de saisir une décision.
+          Aucun détenu ne vous est affecté : la saisie d'une décision est réservée au greffier du dossier.
         </p>
       </div>
     );
@@ -199,13 +200,13 @@ export const DecisionFormPage: React.FC = () => {
               {STATUTS_PROPOSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </Field>
-          {form.statut_propose === "Condamné" && (
+          {isSentenceProposal(form.statut_propose) && (
             <Field label="Peine (mois) *">
               <input type="number" min={1} max={1200} value={form.peine_proposee}
                 onChange={(e) => set({ peine_proposee: e.target.value })} required className={INPUT} />
             </Field>
           )}
-          {(form.statut_propose === "Condamné" || form.statut_propose === "Libéré") && (
+          {(isSentenceProposal(form.statut_propose) || form.statut_propose === "LIBERE") && (
             <Field label="Date de libération">
               <input type="date" value={form.date_liberation_proposee}
                 onChange={(e) => set({ date_liberation_proposee: e.target.value })} className={INPUT} />

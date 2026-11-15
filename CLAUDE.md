@@ -316,13 +316,13 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - `features/auth/session.ts` : refresh proactif avant expiration, refresh unique (Web Locks + `BroadcastChannel` entre onglets), déconnexion propagée à tous les onglets, `queryClient.clear()`.
 - **Utilisateur** : `GET auth/me/` (`features/auth/types/user.types.ts`) fournit `role`, `prison`, `scope`, `permissions` (`"<ressource>:<read|create|update|delete|validate|complete>"`), `access` et `rbac_enforced`. Les rôles ne sont **plus** lus dans le JWT.
 - **Configuration unique** : `features/auth/config/rbac.ts`. Ce fichier est un miroir d'affichage de `sgpauth/rbac/policy.py`. Il contient :
-  - `ROLES`, `ROLE_LABELS`, et les familles `PRISON_ROLES`, `NATIONAL_READ_ONLY_ROLES`, `PRISONER_LINKED_ROLES` ;
-  - `ROUTE_ACCESS` : règle `{perm | anyOf | roles}` par chemin, lue à la fois par le routeur et par le menu ;
+  - `ROLES` (12 rôles), `ROLE_LABELS`, et les familles `PRISON_ROLES`, `NATIONAL_READ_ONLY_ROLES`, `JUDICIAL_ROLES` (greffier, juge d'instruction, procureur, avocat ; ils remplacent `ACTEUR_JUDICIAIRE`), `MAGISTRATE_ROLES`, `PRISONER_LINKED_ROLES` ;
+  - `ROUTE_ACCESS` : règle `{perm | anyOf | roles | alwaysRoles}` par chemin, lue à la fois par le routeur et par le menu. `roles` ne s'applique que si `rbac_enforced` ; `alwaysRoles` s'applique toujours, pour les ressources que le backend applique même en mode observation (saisie des décisions : `GREFFIER`) ;
   - `ACTIONS` : action nommée → permission ;
   - `HOME_REDIRECT`, les codes et messages de compte, `FORBIDDEN_MESSAGE` et `SESSION_EXPIRED_MESSAGE`.
 - **Droits d'affichage** (le backend reste seul juge) :
   - `usePermissions()` → `can('transfers:validate')`, `canAny([...])`, `canDo('transfer.decide')`, `allows(règle)`, `isMyPrison(prisonId)` ;
-  - `useRole()` → `role`, `label`, `is(...)`, `isPrisonStaff`, `isNationalReadOnly`, `isRelative`, `isJudicialActor` (affichage uniquement, jamais pour un droit) ;
+  - `useRole()` → `role`, `label`, `is(...)`, `isPrisonStaff`, `isNationalReadOnly`, `isRelative`, `isJudicialActor`, `isGreffier`, `isMagistrate` (affichage uniquement, jamais pour un droit) ;
   - `<Can perm=… | anyOf=… | action=… when=…>` masque un bouton ;
   - `ProtectedRoute` (via `guard('<chemin>', …)` dans `AppRouter.tsx`) applique `ROUTE_ACCESS[chemin]` et redirige vers `/403` (`pages/errors/ForbiddenPage.tsx`) ;
   - le menu (`Sidebar.tsx`) est filtré avec les mêmes règles ; les écrans maquettes sont réservés au SUPER_ADMIN.
@@ -342,7 +342,7 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
     - Rôles proposés : `assignable_roles` de `/me` ; boutons limités aux comptes dont le rôle est attribuable.
     - Établissement affiché et obligatoire si `roleRequiresPrison(rôle)` ; imposé (non modifiable) pour l'ADMIN_PRISON.
     - Proche : un ou plusieurs détenus (`links`) à la création ; ensuite, via `/proches`.
-    - Acteur judiciaire : affectations créées après le compte par `judicial-assignments/` (si `judicial_assignments:create`).
+    - Acteurs judiciaires : affectations (détenu, dossier) créées après le compte par `judicial-assignments/` (si `judicial_assignments:create`) ; la fonction n'est plus saisie, c'est le rôle du compte.
   - `/proches` : file de validation des proches (pièces téléchargées via l'API, jamais par URL media) ;
   - `/affectations` : affectations judiciaires, gérées par le SA ;
   - `/inscription` (public) : inscription d'un proche ;
@@ -352,12 +352,14 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - pages : `pages/demandes-visite/` ;
   - le proche dépose une demande (multipart, demande manuscrite obligatoire, au plus 2 autres visiteurs, détenus pris dans les liens `ACTIF` de `/me`), en suit l'état et l'historique, répond à « pièces à compléter » (dépôt puis `resubmit/`) et télécharge son permis ;
   - les fichiers passent toujours par `shared/api/download.ts` (`downloadFile`, requête authentifiée en blob), jamais par une URL media.
-- **Circuit judiciaire (gestionnaires et acteur judiciaire)** :
-  - `/demandes` (`DemandesATraiterPage`) : file des demandes du circuit de l'utilisateur, filtrée par état (« À traiter » = soumises et en vérification) ;
-  - `/demandes/:id` (`DemandeVerificationPage`) : vérification pièce par pièce (conforme ou rejetée avec commentaire), prise en charge, demande de complément, validation (bloquée tant que `problemes_validation` n'est pas vide) et refus motivé ;
+- **Circuit des demandes de visite (gestionnaires)** :
+  - circuit judiciaire (détenu prévenu ou accusé) en deux étapes : le **greffier** vérifie les pièces, puis transmet (`transmit/`, état `TRANSMISE`) ou refuse ; ensuite le **magistrat** décide (juge d'instruction si le détenu est prévenu, procureur s'il est accusé : `magistrat_attendu`). Circuit pénitentiaire (condamné) : AP ou SP, une seule étape ;
+  - `/demandes` (`DemandesATraiterPage`) : chaque rôle ne voit que les demandes de son étape (`STEP_BY_ROLE` → `?etape=GREFFE|MAGISTRAT|PRISON` ; le magistrat seulement celles où il est le magistrat attendu). L'onglet « Terminées » ne montre que les demandes où son étape a décidé ;
+  - `/demandes/:id` (`DemandeVerificationPage`) : les actions n'apparaissent qu'à l'étape de l'utilisateur. Greffe : prise en charge, vérification pièce par pièce, complément, « Transmettre au juge d'instruction / procureur » (bloqué tant que `problemes_validation` n'est pas vide), refus motivé. Magistrat et prison : validation (permis émis) et refus motivé. Sinon, l'étape en cours est seulement affichée ;
+  - suivi (`features/demandes-visite/components/EtapesDemande.tsx`) : frise dépôt → greffe → magistrat → permis (ou dépôt → établissement → permis), avec pour chaque étape qui a transmis, validé ou refusé, quand et le motif, lus dans l'historique (`etape`, `decision`, `motif`, `auteur_role_label`). Elle est affichée au proche (rôle seul, noms masqués par le backend) et aux gestionnaires ;
   - `/permis` (`pages/permis/PermisPage.tsx`) : permis émis (filtre par état), PDF et révocation motivée ; le proche y voit ses permis ;
-  - `/decisions` (`pages/decisions/`) : décisions par détenu (`?detenu=&historique=1` affiche les versions corrigées), saisie et correction en version n+1 (PDF, effet proposé pré-rempli selon le type), application ou rejet de l'effet par l'AP ou le SP ;
-  - la fonction de l'acteur judiciaire (juge, greffier, avocat) restreint l'affichage via `usePermissions().canOnPrisoner(perm, détenu)` et `JUDICIAL_FUNCTION_GRANTS`, lus depuis les liens de `/me`. Cette restriction s'applique même en mode observation, comme côté backend.
+  - `/decisions` (`pages/decisions/`) : décisions par détenu (`?detenu=&historique=1` affiche les versions corrigées). Saisie et correction (version n+1, PDF, effet proposé pré-rempli selon le type) **réservées au greffier**. Application ou rejet de l'effet par l'AP ou le SP.
+- **Statuts du détenu** : codes du backend (`PREVENU`, `ACCUSE`, `CONDAMNE_NON_DEFINITIF`, `CONDAMNE`, `LIBERE`, `EVADE`, `DECEDE`). Les libellés et familles sont dans `features/detenus/types/detenu.ts` (`prisonerStatusLabel`, `isJudicialStage`, `isSentenced`, `isInCustody`, `isClosed`) ; ne jamais comparer à un libellé.
 - **Vérification d'un permis** (`/verification-permis`, `pages/permis/VerificationPermisPage.tsx`, AG, SP et AP) :
   - saisie du numéro ou du code, ou lecture du QR `SIGEP-PV|numéro|code` ;
   - la lecture du QR passe par l'API native `BarcodeDetector` (`features/permis/utils/qrScanner.ts`, sans dépendance) ; une douchette USB fonctionne comme une saisie clavier ;

@@ -10,9 +10,10 @@ export const isAccessAllowed = (user: User | null, rule: AccessRule | undefined)
   const granted = new Set<string>(user.permissions);
   // Les rôles ne filtrent que les maquettes, et seulement quand le backend applique le RBAC
   const roleOk = !rule.roles || !user.rbac_enforced || (user.role !== null && rule.roles.includes(user.role));
+  const alwaysRoleOk = !rule.alwaysRoles || (user.role !== null && rule.alwaysRoles.includes(user.role));
   const permOk = !rule.perm || granted.has(rule.perm);
   const anyOk = !rule.anyOf || rule.anyOf.some((p) => granted.has(p));
-  return roleOk && permOk && anyOk;
+  return roleOk && alwaysRoleOk && permOk && anyOk;
 };
 
 // Lecture des permissions effectives renvoyées par GET auth/me/.

@@ -7,6 +7,9 @@ import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { Detenu } from "../../features/detenus/types/detenu";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 import { Can } from "../../features/auth/components/Can";
+import { useRole } from "../../features/auth/hooks/useRole";
+import { ROUTE_ACCESS } from "../../features/auth/config/rbac";
+import { prisonerStatusLabel } from "../../features/detenus/types/detenu";
 import { formatDate, formatDateTime } from "../../shared/utils/dates";
 import { getApiErrorMessages } from "../../shared/api/errorMessages";
 
@@ -29,7 +32,13 @@ export const DecisionsPage: React.FC = () => {
   });
   const { data: detenus = [] } = useGetDetenus();
   const effect = useDecisionEffect();
-  const { can, isMyPrison } = usePermissions();
+  const { can, allows, isMyPrison } = usePermissions();
+  // Saisie et correction : greffier seulement (règle appliquée par le backend, même en mode observation)
+  const canEnter = allows(ROUTE_ACCESS["/decisions/new"]);
+  const canCorrect = allows(ROUTE_ACCESS["/decisions/:id/correct"]);
+  // Effet sur le statut : AP / SP de la prison du détenu
+  const { is } = useRole();
+  const canApplyEffect = can("court_decisions:validate") && is("ADMIN_PRISON", "SUPERVISEUR_PRISON");
 
   const [dismissing, setDismissing] = useState<number | null>(null);
   const [motif, setMotif] = useState("");
@@ -62,7 +71,7 @@ export const DecisionsPage: React.FC = () => {
   };
 
   const apply = (d: DecisionJustice) => {
-    if (!window.confirm(`Appliquer l'effet proposé : ${d.detenu_nom} passe au statut « ${d.statut_propose} » ?`)) return;
+    if (!window.confirm(`Appliquer l'effet proposé : ${d.detenu_nom} passe au statut « ${prisonerStatusLabel(d.statut_propose)} » ?`)) return;
     run(() => effect.mutateAsync({ id: d.id, apply: true }), `Statut de ${d.detenu_nom} mis à jour.`);
   };
 
@@ -82,7 +91,7 @@ export const DecisionsPage: React.FC = () => {
           <div className="rounded-lg bg-blue-100 p-2"><Gavel className="h-6 w-6 text-blue-600" /></div>
           <h2 className="text-2xl font-bold text-slate-800">Décisions de justice</h2>
         </div>
-        <Can perm="court_decisions:create">
+        <Can perm="court_decisions:create" when={canEnter}>
           <Link to={`/decisions/new${detenu ? `?detenu=${detenu}` : ""}`}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
             <Plus className="h-4 w-4" /> Saisir une décision
@@ -101,7 +110,7 @@ export const DecisionsPage: React.FC = () => {
           <option value="">Tous les types</option>
           {TYPES_DECISION.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        {can("court_decisions:validate") && (
+        {canApplyEffect && (
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" checked={aAppliquer} onChange={(e) => setFilter("effet", e.target.checked ? "PROPOSE" : "")} />
             Effets à appliquer
@@ -148,7 +157,7 @@ export const DecisionsPage: React.FC = () => {
                     {d.effet_etat !== "AUCUN" && (
                       <p>
                         <span className={`rounded-full px-2 py-0.5 text-xs ${EFFET_STYLES[d.effet_etat]}`}>{d.effet_etat_label}</span>
-                        {d.statut_propose && <span className="ml-2 text-gray-700">Statut proposé : {d.statut_propose}</span>}
+                        {d.statut_propose && <span className="ml-2 text-gray-700">Statut proposé : {prisonerStatusLabel(d.statut_propose)}</span>}
                         {d.peine_proposee && <span className="ml-2 text-gray-700">Peine : {d.peine_proposee} mois</span>}
                         {d.date_liberation_proposee && <span className="ml-2 text-gray-700">Libération : {formatDate(d.date_liberation_proposee)}</span>}
                         {d.effet_traite_par_nom && (
@@ -165,12 +174,12 @@ export const DecisionsPage: React.FC = () => {
                         <Download className="h-4 w-4" /> PDF
                       </button>
                     )}
-                    {d.est_courante && can("court_decisions:update") && (
+                    {d.est_courante && canCorrect && (
                       <Link to={`/decisions/${d.id}/correct`} className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900">
                         <Pencil className="h-4 w-4" /> Corriger
                       </Link>
                     )}
-                    <Can perm="court_decisions:validate" when={d.effet_etat === "PROPOSE" && d.est_courante && isMyPrison(d.prison)}>
+                    <Can perm="court_decisions:validate" when={canApplyEffect && d.effet_etat === "PROPOSE" && d.est_courante && isMyPrison(d.prison)}>
                       <button type="button" disabled={effect.isPending} onClick={() => apply(d)}
                         className="flex items-center gap-1 rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50">
                         <Check className="h-4 w-4" /> Appliquer

@@ -65,6 +65,9 @@ export interface AccessRule {
   perm?: Permission;
   anyOf?: Permission[];
   roles?: Role[];
+  // Rôles exigés même en mode observation : ressources que le backend applique toujours
+  // (circuit judiciaire), alors que /me renvoie toutes les permissions en mode observation
+  alwaysRoles?: Role[];
 }
 
 const MOCKUP: AccessRule = { roles: ["SUPER_ADMIN"] };
@@ -112,8 +115,9 @@ export const ROUTE_ACCESS = {
     roles: ["AGENT_PENITENTIAIRE", "SUPERVISEUR_PRISON", "ADMIN_PRISON"],
   },
   "/decisions": { perm: "court_decisions:read" },
-  "/decisions/new": { perm: "court_decisions:create" },
-  "/decisions/:id/correct": { perm: "court_decisions:update" },
+  // Saisie et correction des décisions : greffier affecté uniquement
+  "/decisions/new": { perm: "court_decisions:create", alwaysRoles: ["GREFFIER"] },
+  "/decisions/:id/correct": { perm: "court_decisions:update", alwaysRoles: ["GREFFIER"] },
   "/generic-dashboard": MOCKUP,
   "/pardons": MOCKUP,
   "/reinsertion": MOCKUP,
