@@ -1,5 +1,6 @@
 // features/detenus/pages/InmateFormPage.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { IN_CUSTODY_STATUSES, PRISONER_STATUSES } from '../../features/detenus/types/detenu';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Save, X, Camera, RefreshCw, Fingerprint, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import countries from 'i18n-iso-countries';
@@ -173,10 +174,8 @@ export const DetenuFormPage: React.FC = () => {
     }
   }, [isEditMode, detenu]);
 
-  const statusDetenu = [
-    'Condamné',
-    'Prévenu'
-  ]
+  // Statuts proposés à l'écrou : détenus en détention (la libération passe par l'action dédiée)
+  const statusDetenu = PRISONER_STATUSES.filter((st) => IN_CUSTODY_STATUSES.includes(st.value))
 
   // Rôles prison : le détenu est créé dans leur établissement (imposé par le serveur)
   const { user } = usePermissions();
@@ -451,9 +450,9 @@ export const DetenuFormPage: React.FC = () => {
                         {isLoadingPrisons ? (
                           <option value="" disabled>Chargement des statuts...</option>
                         ) : (
-                          statusDetenu.map((s: string) => (
-                            <option key={s} value={s}>
-                              { s }
+                          statusDetenu.map((st) => (
+                            <option key={st.value} value={st.value}>
+                              {st.label}
                             </option>
                           ))
                         )}

@@ -1,5 +1,6 @@
 // features/detenus/pages/InmateDetailPage.tsx
 import React from 'react';
+import { isClosed, prisonerStatusLabel, prisonerStatusStyle } from '../../features/detenus/types/detenu';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, FolderOpen, Eye, Download, Trash2, Upload, File } from 'lucide-react';
 import { useGetDetenuById, useReleaseDetenu } from '../../features/detenus/api/useGetDetenu';
@@ -10,7 +11,6 @@ import { Can } from '../../features/auth/components/Can';
 import { getApiErrorMessage } from '../../shared/api/errorMessages';
 
 // Statuts pour lesquels la libération n'a plus de sens
-const RELEASED_STATUSES = ['Libéré', 'Décédé', 'Évadé'];
 const documents = [
     {
       id: 1,
@@ -189,7 +189,7 @@ export const InmateDetailPage: React.FC = () => {
           {/* Libération : SUPERVISEUR / ADMIN de la prison du détenu (D6) */}
           <Can
             perm="prisoners:validate"
-            when={!RELEASED_STATUSES.includes(detenu.status) && isMyPrison(detenu.prison)}
+            when={!isClosed(detenu) && isMyPrison(detenu.prison)}
           >
             <button
               onClick={handleRelease}
@@ -226,8 +226,8 @@ export const InmateDetailPage: React.FC = () => {
                   </h2>
                   <p className="text-gray-600">N° d'écrou: {getEcrouNumber(detenu.id)}</p>
                 </div>
-                <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
-                  Condamné
+                <span className={`px-3 py-1 rounded-full text-sm ${prisonerStatusStyle(detenu.status)}`}>
+                  {prisonerStatusLabel(detenu.status)}
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
@@ -299,7 +299,7 @@ export const InmateDetailPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Statut juridique</span>
-                      <span className="font-medium">{ detenu.status }</span>
+                      <span className="font-medium">{prisonerStatusLabel(detenu.status)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Avocat</span>

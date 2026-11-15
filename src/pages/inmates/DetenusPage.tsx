@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useGetDetenus, useCreateDetenu, useUpdateDetenu } from '../../features/detenus/api/useGetDetenu';
-import { Detenu, InmateTableRow } from '../../features/detenus/types/detenu';
+import { Detenu, InmateTableRow, isJudicialStage, isSentenced, matchesStatusFilter, prisonerStatusLabel, STATUS_FAMILY_FILTERS, PRISONER_STATUSES } from '../../features/detenus/types/detenu';
 import { InmateTable } from '../../components/inmates/InmateTable';
 import { InmateFilters } from '../../components/inmates/InmateFilters';
 import { InmateStats } from '../../components/inmates/InmateStats';
@@ -95,7 +95,7 @@ export const InmateListPage: React.FC = () => {
       const fullName = `${detenu.first_name} ${detenu.last_name}`.toLowerCase();
       const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
                            detenu.ecrouNumber.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || detenu.status === statusFilter;
+      const matchesStatus = matchesStatusFilter(detenu.status, statusFilter);
       const matchesPrison = prisonFilter === 'all' || detenu.prisonName === prisonFilter;
       return matchesSearch && matchesStatus && matchesPrison;
     });
@@ -104,19 +104,20 @@ export const InmateListPage: React.FC = () => {
   
   // Calculate statistics
   const statistics = useMemo(() => {
-    const convicted = tableRows.filter(d => d.status === 'Condamné').length;
+    const convicted = tableRows.filter(d => isSentenced(d)).length;
+    const pretrial = tableRows.filter(d => isJudicialStage(d)).length;
     const total = tableRows.length;
     const now = new Date()
-  // Libérations ce mois : status Libéré + release_date dans le mois courant
+  // Libérations ce mois : statut LIBERE + release_date dans le mois courant
   const liberationsThisMonth = detenus.filter((d: Detenu) => {
-    if (d.status !== 'Libéré') return false;
+    if (d.status !== 'LIBERE') return false;
     const r = new Date(d.release_date);
     return r.getFullYear() === now.getFullYear() && r.getMonth() === now.getMonth();
   }).length;
     return {
       total,
       convicted,
-      pretrial: total - convicted,
+      pretrial,
       convictedPercentage: total > 0 ? Math.round((convicted / total) * 100) : 0,
       liberationsThisMonth
     };
@@ -131,8 +132,9 @@ export const InmateListPage: React.FC = () => {
   }, [prisons]);
 
   const filterLabel =
-    statusFilter === 'Condamné' ? 'Condamnés' :
-    statusFilter === 'Prévenu'  ? 'Prévenus'  : 'Tous les détenus';
+    STATUS_FAMILY_FILTERS.find((f) => f.value === statusFilter)?.label ??
+    PRISONER_STATUSES.find((st) => st.value === statusFilter)?.plural ??
+    'Tous les détenus';
 
   const generateReport = useCallback(() => {
     const doc = new jsPDF();
@@ -162,7 +164,7 @@ export const InmateListPage: React.FC = () => {
       body: [
         ['Total détenus (système)', String(total), 'Ensemble des détenus enregistrés'],
         ['Condamnés', String(convicted), `${convictedPercentage}% du total`],
-        ['Prévenus', String(pretrial), `${100 - convictedPercentage}% du total`],
+        ['Prévenus et accusés', String(pretrial), `${total > 0 ? Math.round((pretrial / total) * 100) : 0}% du total`],
         ['Libérations ce mois', String(liberationsThisMonth), new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })],
       ],
       theme: 'striped',
@@ -199,7 +201,7 @@ export const InmateListPage: React.FC = () => {
         new Date(d.incarceration_date).toLocaleDateString('fr-FR'),
         d.release_date ? new Date(d.release_date).toLocaleDateString('fr-FR') : '—',
         d.prisonName,
-        d.status,
+        prisonerStatusLabel(d.status),
         d.timeServed,
       ]),
       theme: 'striped',
@@ -208,8 +210,8 @@ export const InmateListPage: React.FC = () => {
       didParseCell: (data) => {
         if (data.column.index === 7 && data.section === 'body') {
           const val = data.cell.raw as string;
-          if (val === 'Condamné') data.cell.styles.textColor = [185, 28, 28];
-          else if (val === 'Prévenu') data.cell.styles.textColor = [180, 83, 9];
+          if (val.startsWith('Condamné')) data.cell.styles.textColor = [185, 28, 28];
+          else if (val === 'Prévenu' || val === 'Accusé') data.cell.styles.textColor = [180, 83, 9];
         }
       },
       margin: { left: 8, right: 8 },
@@ -279,21 +281,21 @@ export const InmateListPage: React.FC = () => {
                 <span className="text-sm font-normal opacity-70">{tableRows.length} détenus</span>
               </button>
               <button
-                onClick={() => selectFilter('Condamné')}
+                onClick={() => selectFilter('CONDAMNES')}
                 className="w-full py-3 px-5 rounded-xl bg-red-600 text-white font-semibold text-base hover:bg-red-700 transition-colors flex items-center justify-between"
               >
                 <span>Condamnés</span>
                 <span className="text-sm font-normal opacity-70">
-                  {tableRows.filter(d => d.status === 'Condamné').length} détenus
+                  {tableRows.filter(d => isSentenced(d)).length} détenus
                 </span>
               </button>
               <button
-                onClick={() => selectFilter('Prévenu')}
+                onClick={() => selectFilter('JUDICIAIRE')}
                 className="w-full py-3 px-5 rounded-xl bg-amber-500 text-white font-semibold text-base hover:bg-amber-600 transition-colors flex items-center justify-between"
               >
-                <span>Prévenus</span>
+                <span>Prévenus et accusés</span>
                 <span className="text-sm font-normal opacity-70">
-                  {tableRows.filter(d => d.status === 'Prévenu').length} détenus
+                  {tableRows.filter(d => isJudicialStage(d)).length} détenus
                 </span>
               </button>
             </div>

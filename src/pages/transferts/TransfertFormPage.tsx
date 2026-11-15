@@ -5,7 +5,7 @@ import { ArrowLeft, Save, X, ArrowRightLeft } from 'lucide-react';
 import { useCreateTransfert, useGetTransfertById, useUpdateTransfert } from '../../features/transferts/api/useGetTransfert';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
-import { Detenu, isMovable } from '../../features/detenus/types/detenu';
+import { Detenu, isMovable, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { Prison } from '../../features/prisons/types/prison';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 
@@ -160,11 +160,11 @@ export const TransfertFormPage: React.FC = () => {
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Sélectionner un détenu</option>
-                      {/* Prévenus et condamnés seulement (le détenu déjà choisi reste affiché en modification) */}
+                      {/* Détenus en détention seulement (le détenu déjà choisi reste affiché en modification) */}
                       {detenusList
                         .filter((d: Detenu) => (isMovable(d) && isMyPrison(d.prison)) || String(d.id) === String(formData.prisoner))
                         .map((d: Detenu) => (
-                          <option key={d.id} value={d.id}>{d.first_name} {d.last_name} ({d.status})</option>
+                          <option key={d.id} value={d.id}>{d.first_name} {d.last_name} ({prisonerStatusLabel(d.status)})</option>
                         ))}
                     </select>
                     {isLoadingDetenus && <p className="text-xs text-gray-500 mt-1">Chargement des détenus...</p>}

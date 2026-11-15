@@ -1,7 +1,7 @@
 // features/detenus/components/InmateTable.tsx
 import React, { useState, useEffect } from 'react';
 import { User, Eye, Edit, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, prisonerStatusLabel, prisonerStatusStyle } from '../../features/detenus/types/detenu';
 import { InmateTableRow } from '../../features/detenus/types/detenu';
 
 interface InmateTableProps {
@@ -33,16 +33,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
   const totalPages = Math.max(1, Math.ceil(detenus.length / PAGE_SIZE));
   const paginated = detenus.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Condamné':
-        return 'bg-red-100 text-red-800';
-      case 'Prévenu':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getStatusColor = prisonerStatusStyle;
 
   if (loading) {
     return (
@@ -121,7 +112,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
               <td className="px-4 py-3 text-sm text-gray-800">{detenu.prisonName}</td>
               <td className="px-4 py-3">
                 <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(detenu.status)}`}>
-                  {detenu.status}
+                  {prisonerStatusLabel(detenu.status)}
                 </span>
               </td>
               <td className="px-4 py-3">

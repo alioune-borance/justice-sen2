@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, AlertTriangle } from 'lucide-react';
 import { useAddDisciplinaryRecord } from '../../features/incidents/api/useGetIncident';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { DisciplinaryRecord } from '../../features/incidents/types/incident';
 
 export const IncidentFormPage: React.FC = () => {
@@ -125,7 +125,7 @@ export const IncidentFormPage: React.FC = () => {
                     <span className="text-gray-500">Matricule</span>
                     <span className="font-medium">{selectedDetenu.matricule_number}</span>
                     <span className="text-gray-500">Statut</span>
-                    <span className="font-medium">{selectedDetenu.status}</span>
+                    <span className="font-medium">{prisonerStatusLabel(selectedDetenu.status)}</span>
                     <span className="text-gray-500">Incarcéré le</span>
                     <span className="font-medium">
                       {new Date(selectedDetenu.incarceration_date).toLocaleDateString('fr-FR')}

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, Stethoscope } from 'lucide-react';
 import { useAddHealthRecord } from '../../features/infirmerie/api/useGetInfirmerie';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu, isInCustody } from '../../features/detenus/types/detenu';
+import { Detenu, isInCustody, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { HealthRecord } from '../../features/infirmerie/types/infirmerie';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { getApiErrorMessage } from '../../shared/api/errorMessages';
@@ -115,7 +115,7 @@ export const InfirmerieFormPage: React.FC = () => {
                     <option value="">-- Sélectionner un détenu --</option>
                     {patients.map((d: Detenu) => (
                       <option key={d.id} value={d.id}>
-                        {d.first_name} {d.last_name}{d.matricule_number ? ` — ${d.matricule_number}` : ''} ({d.status})
+                        {d.first_name} {d.last_name}{d.matricule_number ? ` — ${d.matricule_number}` : ''} ({prisonerStatusLabel(d.status)})
                       </option>
                     ))}
                   </select>
@@ -134,7 +134,7 @@ export const InfirmerieFormPage: React.FC = () => {
                     <span className="text-gray-500">Matricule</span>
                     <span className="font-medium">{selectedDetenu.matricule_number}</span>
                     <span className="text-gray-500">Statut</span>
-                    <span className="font-medium">{selectedDetenu.status}</span>
+                    <span className="font-medium">{prisonerStatusLabel(selectedDetenu.status)}</span>
                     {selectedDetenu.incarceration_date && (
                       <>
                         <span className="text-gray-500">Incarcéré le</span>

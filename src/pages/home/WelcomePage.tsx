@@ -6,7 +6,7 @@ import { useRole } from "../../features/auth/hooks/useRole";
 import { ROUTE_ACCESS, RoutePath } from "../../features/auth/config/rbac";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { useGetPrisons } from "../../features/prisons/api/useGetPrison";
-import { Detenu } from "../../features/detenus/types/detenu";
+import { Detenu, prisonerStatusLabel } from "../../features/detenus/types/detenu";
 import { Prison } from "../../features/prisons/types/prison";
 import { RelativeRequestsPanel } from "../../features/proches/components/RelativeRequestsPanel";
 
@@ -92,7 +92,7 @@ export const WelcomePage: React.FC = () => {
                     {d.matricule_number && <span className="text-gray-500">({d.matricule_number})</span>}
                   </span>
                   <span className="text-gray-600">
-                    {d.status} — {prisonName(d.prison)}
+                    {prisonerStatusLabel(d.status)} — {prisonName(d.prison)}
                     {linkInfo(d.id) && <span className="ml-2 text-gray-500">· {linkInfo(d.id)}</span>}
                   </span>
                 </li>

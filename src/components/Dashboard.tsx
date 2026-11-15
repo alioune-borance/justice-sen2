@@ -17,7 +17,7 @@ import { useGetDetenus } from '../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../features/prisons/api/useGetPrison';
 import { useGetVisites } from '../features/visites/api/useGetVisite';
 import { usePermissions } from '../features/auth/hooks/usePermissions';
-import { Detenu } from '../features/detenus/types/detenu';
+import { Detenu, isJudicialStage, isSentenced } from '../features/detenus/types/detenu';
 import { Prison } from '../features/prisons/types/prison';
 import { Visite } from '../features/visites/types/visite';
 
@@ -172,9 +172,9 @@ export const Dashboard: React.FC = () => {
     }).length;
   }, [visites, now]);
 
-  // Prisonniers en attente de jugement (Prévenu)
+  // Prisonniers en attente de jugement (prévenus et accusés)
   const prevenus: Detenu[] = useMemo(
-    () => detenus.filter((d: Detenu) => d.status === 'Prévenu'),
+    () => detenus.filter((d: Detenu) => isJudicialStage(d)),
     [detenus]
   );
 
@@ -194,9 +194,8 @@ export const Dashboard: React.FC = () => {
   };
 
   const totalDetenus = detenus.length;
-  const condamnes = detenus.filter((d: Detenu) => d.status === 'Condamné').length;
-  const liberes = detenus.filter((d: Detenu) => d.status === 'Libéré').length;
-  console.log(condamnes);
+  const condamnes = detenus.filter((d: Detenu) => isSentenced(d)).length;
+  const liberes = detenus.filter((d: Detenu) => d.status === 'LIBERE').length;
   // Libérations ce mois
   // const now = new Date();
   // const liberationsThisMonth = detenus.filter((d: Detenu) => {

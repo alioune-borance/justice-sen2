@@ -4,11 +4,9 @@ import { Building2, Eye, Gavel, Scale, Users } from "lucide-react";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { useGetPrisons } from "../../features/prisons/api/useGetPrison";
 import { useRole } from "../../features/auth/hooks/useRole";
-import { Detenu } from "../../features/detenus/types/detenu";
+import { Detenu, isInCustody, isJudicialStage, isSentenced } from "../../features/detenus/types/detenu";
 import { Prison } from "../../features/prisons/types/prison";
 
-// Statuts « présents » : le détenu occupe une place dans l'établissement
-const PRESENT_STATUSES = ["Prévenu", "Condamné"];
 
 // Couleur de série unique (palette de référence, emplacement 1) ; textes en encre neutre
 const SERIES_COLOR = "#2a78d6";
@@ -31,18 +29,18 @@ export const NationalDashboard: React.FC = () => {
 
   const stats = useMemo(() => {
     const list = detenus as Detenu[];
-    const count = (status: string) => list.filter((d) => d.status === status).length;
+    // « Présents » : en détention (prévenus, accusés, condamnés)
     return {
-      present: list.filter((d) => PRESENT_STATUSES.includes(d.status)).length,
-      prevenus: count("Prévenu"),
-      condamnes: count("Condamné"),
+      present: list.filter(isInCustody).length,
+      prevenus: list.filter(isJudicialStage).length,
+      condamnes: list.filter(isSentenced).length,
     };
   }, [detenus]);
 
   const rows: PrisonRow[] = useMemo(() => {
     const byPrison = new Map<number, number>();
     (detenus as Detenu[])
-      .filter((d) => PRESENT_STATUSES.includes(d.status))
+      .filter(isInCustody)
       .forEach((d) => byPrison.set(d.prison, (byPrison.get(d.prison) ?? 0) + 1));
     return (prisons as Prison[])
       .map((p) => ({ id: p.id, name: p.name, present: byPrison.get(p.id) ?? 0, capacity: p.capacity ?? null }))
@@ -75,13 +73,13 @@ export const NationalDashboard: React.FC = () => {
         <KpiTile icon={Building2} title="Établissements" value={rows.length} />
         <KpiTile icon={Users} title="Détenus présents" value={stats.present}
           hint={occupancy !== null ? `Taux d'occupation : ${occupancy} %` : undefined} />
-        <KpiTile icon={Scale} title="Prévenus" value={stats.prevenus} />
+        <KpiTile icon={Scale} title="Prévenus et accusés" value={stats.prevenus} />
         <KpiTile icon={Gavel} title="Condamnés" value={stats.condamnes} />
       </div>
 
       <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="font-semibold text-slate-800">Détenus présents par établissement</h3>
-        <p className="mb-4 text-sm text-gray-500">Prévenus et condamnés, tous établissements</p>
+        <p className="mb-4 text-sm text-gray-500">Prévenus, accusés et condamnés, tous établissements</p>
         {rows.length === 0 ? (
           <p className="text-sm text-gray-500">Aucun établissement.</p>
         ) : (
