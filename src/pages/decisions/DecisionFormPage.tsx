@@ -42,12 +42,10 @@ export const DecisionFormPage: React.FC = () => {
   const { data: original, isLoading } = useGetDecision(correctionOf);
   const createDecision = useCreateDecision();
   const correctDecision = useCorrectDecision();
-  const { user, canOnPrisoner } = usePermissions();
+  const { user } = usePermissions();
 
-  // Détenus affectés dont la fonction permet la saisie (juge, greffier) : liens judiciaires de /me
-  const assigned = (user?.links ?? []).filter(
-    (l) => l.type === "judicial" && l.prisoner_id !== null && canOnPrisoner("court_decisions:create", l.prisoner_id)
-  );
+  // Détenus affectés au greffier : liens judiciaires de /me
+  const assigned = (user?.links ?? []).filter((l) => l.type === "judicial" && l.prisoner_id !== null);
 
   const [form, setForm] = useState<FormState>({
     detenu: search.get("detenu") ?? "",

@@ -4,7 +4,8 @@ export interface Affectation {
   acteur_nom: string;
   detenu: number;
   detenu_nom: string;
-  fonction: "JUGE_INSTRUCTION" | "GREFFIER" | "AVOCAT";
+  // Lecture seule : rôle de l'acteur (greffier, juge d'instruction, procureur, avocat)
+  fonction: string;
   fonction_label: string;
   reference_dossier: string;
   date_debut: string;
@@ -14,13 +15,8 @@ export interface Affectation {
   cree_le: string;
 }
 
-export type CreateAffectationDto = Pick<Affectation, "acteur" | "detenu" | "fonction" | "reference_dossier"> & {
+export type CreateAffectationDto = Pick<Affectation, "acteur" | "detenu" | "reference_dossier"> & {
   date_debut?: string;
   date_fin?: string | null;
 };
 
-export const FONCTIONS_JUDICIAIRES = [
-  { value: "JUGE_INSTRUCTION", label: "Juge d'instruction" },
-  { value: "GREFFIER", label: "Greffier" },
-  { value: "AVOCAT", label: "Avocat" },
-] as const;

@@ -14,7 +14,7 @@ export const PermisPage: React.FC = () => {
   const [etat, setEtat] = useState<"" | EtatPermis>("");
   const { data: permis = [], isLoading, isError } = useGetPermis({ etat: etat || undefined });
   const revoke = useRevokePermis();
-  const { canOnPrisoner } = usePermissions();
+  const { can } = usePermissions();
   const { isRelative } = useRole();
 
   const [revoking, setRevoking] = useState<number | null>(null);
@@ -75,7 +75,7 @@ export const PermisPage: React.FC = () => {
         ) : (
           <ul className="divide-y divide-gray-100">
             {permis.map((p) => {
-              const canRevoke = p.etat !== "REVOQUE" && p.etat !== "EXPIRE" && canOnPrisoner("visit_permits:validate", p.detenu);
+              const canRevoke = p.etat !== "REVOQUE" && p.etat !== "EXPIRE" && can("visit_permits:validate");
               return (
                 <li key={p.id} className="space-y-2 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">

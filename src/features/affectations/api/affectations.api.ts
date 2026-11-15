@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../../../shared/api/axiosInstance";
 import { Affectation, CreateAffectationDto } from "../types/affectation";
 
-// SUPER_ADMIN : toutes ; ACTEUR_JUDICIAIRE : les siennes (filtré par le backend)
+// SUPER_ADMIN : toutes ; acteurs judiciaires : les leurs (filtré par le backend)
 export const getAffectations = async (): Promise<Affectation[]> => {
   const { data } = await axiosInstance.get<Affectation[]>("judicial-assignments/");
   return data;

@@ -24,7 +24,7 @@ export const DemandeVerificationPage: React.FC = () => {
   const { data: demande, isLoading, isError } = useGetDemande(id);
   const action = useDemandeAction();
   const review = useReviewPieceDemande();
-  const { canOnPrisoner } = usePermissions();
+  const { can } = usePermissions();
 
   const [dialog, setDialog] = useState<Dialog>(null);
   const [text, setText] = useState("");
@@ -34,8 +34,8 @@ export const DemandeVerificationPage: React.FC = () => {
   if (isLoading) return <p className="text-gray-500">Chargement…</p>;
   if (isError || !demande) return <p className="text-red-600">Demande introuvable ou hors de votre périmètre.</p>;
 
-  const canInstruct = canOnPrisoner("visit_requests:update", demande.detenu);
-  const canDecide = canOnPrisoner("visit_requests:validate", demande.detenu);
+  const canInstruct = can("visit_requests:update");
+  const canDecide = can("visit_requests:validate");
   const open = demande.statut === "SOUMISE" || demande.statut === "EN_VERIFICATION";
   const blockers = demande.problemes_validation ?? [];
 

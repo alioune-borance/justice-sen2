@@ -15,7 +15,10 @@ export const ROLES = {
   PROCHE_REFERENT: "PROCHE_REFERENT",
   REP_MIN_JUSTICE: "REP_MIN_JUSTICE",
   REP_MIN_INTERIEUR: "REP_MIN_INTERIEUR",
-  ACTEUR_JUDICIAIRE: "ACTEUR_JUDICIAIRE",
+  GREFFIER: "GREFFIER",
+  JUGE_INSTRUCTION: "JUGE_INSTRUCTION",
+  PROCUREUR: "PROCUREUR",
+  AVOCAT: "AVOCAT",
 } as const satisfies Record<Role, Role>;
 
 // Mêmes libellés que sgpauth/rbac/roles.py (le backend renvoie aussi role_label dans /me)
@@ -28,7 +31,10 @@ export const ROLE_LABELS: Record<Role, string> = {
   PROCHE_REFERENT: "Proche référent",
   REP_MIN_JUSTICE: "Représentant du ministère de la Justice",
   REP_MIN_INTERIEUR: "Représentant du ministère de l'Intérieur",
-  ACTEUR_JUDICIAIRE: "Acteur judiciaire",
+  GREFFIER: "Greffier",
+  JUGE_INSTRUCTION: "Juge d'instruction",
+  PROCUREUR: "Procureur",
+  AVOCAT: "Avocat",
 };
 
 export const roleLabel = (role: Role | null | undefined): string =>
@@ -38,8 +44,16 @@ export const roleLabel = (role: Role | null | undefined): string =>
 export const PRISON_ROLES: Role[] = ["ADMIN_PRISON", "SUPERVISEUR_PRISON", "AGENT_PENITENTIAIRE", "PERSONNEL_SANTE"];
 // Vue nationale en lecture seule
 export const NATIONAL_READ_ONLY_ROLES: Role[] = ["REP_MIN_JUSTICE", "REP_MIN_INTERIEUR"];
-// Périmètre = détenus liés (proche) ou affectés (acteur judiciaire)
-export const PRISONER_LINKED_ROLES: Role[] = ["PROCHE_REFERENT", "ACTEUR_JUDICIAIRE"];
+// Acteurs judiciaires : détenus de leurs affectations actives (créées par le SUPER_ADMIN)
+//   greffier : instruit les demandes de visite (étape 1) et seul saisit les décisions de justice ;
+//   juge d'instruction (prévenus) / procureur (accusés) : décident les demandes transmises (étape 2) ;
+//   avocat : lecture seule.
+export const JUDICIAL_ROLES: Role[] = ["GREFFIER", "JUGE_INSTRUCTION", "PROCUREUR", "AVOCAT"];
+export const MAGISTRATE_ROLES: Role[] = ["JUGE_INSTRUCTION", "PROCUREUR"];
+// Périmètre = détenus liés (proche) ou affectés (acteurs judiciaires)
+export const PRISONER_LINKED_ROLES: Role[] = ["PROCHE_REFERENT", ...JUDICIAL_ROLES];
+
+export const isJudicialRole = (role: Role | null | undefined) => !!role && JUDICIAL_ROLES.includes(role);
 
 export const roleRequiresPrison = (role: Role | null | undefined) => !!role && PRISON_ROLES.includes(role);
 export const roleHasPrisonerLinks = (role: Role | null | undefined) => !!role && PRISONER_LINKED_ROLES.includes(role);
@@ -153,24 +167,6 @@ export const ACTIONS = {
 } as const satisfies Record<string, Permission>;
 
 export type ActionName = keyof typeof ACTIONS;
-
-// ── Fonction de l'acteur judiciaire ────────────────────────────────────────────────────────────
-// Miroir de policy.JUDICIAL_FUNCTION_GRANTS : la fonction sur l'affectation du détenu (liens de /me)
-// restreint ce que le rôle permet. Juge : tout ; greffier : instruire et saisir ; avocat : lecture.
-export const JUDICIAL_FUNCTION_GRANTS: Record<string, Permission[]> = {
-  JUGE_INSTRUCTION: [
-    "visit_requests:read", "visit_requests:update", "visit_requests:validate",
-    "visit_permits:read", "visit_permits:validate",
-    "court_decisions:read", "court_decisions:create", "court_decisions:update",
-  ],
-  GREFFIER: [
-    "visit_requests:read", "visit_requests:update",
-    "visit_permits:read",
-    "court_decisions:read", "court_decisions:create", "court_decisions:update",
-  ],
-  AVOCAT: ["visit_requests:read", "visit_permits:read", "court_decisions:read"],
-};
-export const FUNCTION_RESTRICTED_RESOURCES = ["visit_requests", "visit_permits", "court_decisions"];
 
 // ── Accueil par rôle ───────────────────────────────────────────────────────────────────────────
 // Rôles redirigés vers un écran dédié dès la connexion (les autres : HomePage décide)

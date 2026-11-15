@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Gavel } from "lucide-react";
 import { useCreateAffectation, useEndAffectation, useGetAffectations } from "../../features/affectations/api/affectations.api";
-import { FONCTIONS_JUDICIAIRES } from "../../features/affectations/types/affectation";
 import { useGetUsers } from "../../features/users/api/useUsers";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { Detenu } from "../../features/detenus/types/detenu";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 import { Can } from "../../features/auth/components/Can";
+import { isJudicialRole, roleLabel } from "../../features/auth/config/rbac";
 import { getApiErrorMessages } from "../../shared/api/errorMessages";
 
 const INPUT = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm";
@@ -16,11 +16,13 @@ export const AffectationsPage: React.FC = () => {
   const { can } = usePermissions();
   const canManage = can("judicial_assignments:create");
   const { data: affectations = [], isLoading } = useGetAffectations();
-  const { data: acteurs = [] } = useGetUsers({ role: "ACTEUR_JUDICIAIRE" }, { enabled: canManage });
+  // Comptes judiciaires (greffier, juge d'instruction, procureur, avocat) : la fonction = le rôle
+  const { data: users = [] } = useGetUsers(undefined, { enabled: canManage });
+  const acteurs = users.filter((u) => u.is_active && isJudicialRole(u.role));
   const { data: detenus = [] } = useGetDetenus();
   const create = useCreateAffectation();
   const end = useEndAffectation();
-  const [form, setForm] = useState({ acteur: "", detenu: "", fonction: "JUGE_INSTRUCTION", reference_dossier: "" });
+  const [form, setForm] = useState({ acteur: "", detenu: "", reference_dossier: "" });
   const [errors, setErrors] = useState<string[]>([]);
 
   const update = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -33,7 +35,6 @@ export const AffectationsPage: React.FC = () => {
       await create.mutateAsync({
         acteur: Number(form.acteur),
         detenu: Number(form.detenu),
-        fonction: form.fonction as "JUGE_INSTRUCTION" | "GREFFIER" | "AVOCAT",
         reference_dossier: form.reference_dossier,
       });
       setForm((prev) => ({ ...prev, detenu: "", reference_dossier: "" }));
@@ -61,17 +62,18 @@ export const AffectationsPage: React.FC = () => {
         <form onSubmit={submit} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-3">
           <h3 className="font-semibold text-slate-800">Nouvelle affectation</h3>
           {errors.length > 0 && <p className="text-sm text-red-600">{errors.join(" ")}</p>}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <select name="acteur" value={form.acteur} onChange={update} required className={INPUT}>
               <option value="">Acteur judiciaire</option>
-              {acteurs.map((a) => <option key={a.id} value={a.id}>{[a.first_name, a.last_name].filter(Boolean).join(" ") || a.username}</option>)}
+              {acteurs.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {[a.first_name, a.last_name].filter(Boolean).join(" ") || a.username} — {roleLabel(a.role)}
+                </option>
+              ))}
             </select>
             <select name="detenu" value={form.detenu} onChange={update} required className={INPUT}>
               <option value="">Détenu</option>
               {(detenus as Detenu[]).map((d) => <option key={d.id} value={d.id}>{d.first_name} {d.last_name} {d.matricule_number ? `(${d.matricule_number})` : ""}</option>)}
-            </select>
-            <select name="fonction" value={form.fonction} onChange={update} className={INPUT}>
-              {FONCTIONS_JUDICIAIRES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
             <input name="reference_dossier" value={form.reference_dossier} onChange={update} placeholder="Référence du dossier" className={INPUT} />
           </div>

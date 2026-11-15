@@ -13,7 +13,7 @@ import { getApiErrorMessages } from "../../shared/api/errorMessages";
 const SELECT = "rounded-lg border border-gray-300 px-3 py-2 text-sm";
 
 // Décisions de justice. Lecture : prison actuelle du détenu, ministère de la Justice, acteurs judiciaires affectés.
-// Saisie et correction : acteur judiciaire affecté (selon sa fonction). Effet sur le statut : AP / SP de la prison.
+// Saisie et correction : greffier affecté. Effet sur le statut : AP / SP de la prison.
 export const DecisionsPage: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const detenu = params.get("detenu") ?? "";
@@ -29,7 +29,7 @@ export const DecisionsPage: React.FC = () => {
   });
   const { data: detenus = [] } = useGetDetenus();
   const effect = useDecisionEffect();
-  const { canOnPrisoner, can, isMyPrison } = usePermissions();
+  const { can, isMyPrison } = usePermissions();
 
   const [dismissing, setDismissing] = useState<number | null>(null);
   const [motif, setMotif] = useState("");
@@ -165,7 +165,7 @@ export const DecisionsPage: React.FC = () => {
                         <Download className="h-4 w-4" /> PDF
                       </button>
                     )}
-                    {d.est_courante && canOnPrisoner("court_decisions:update", d.detenu) && (
+                    {d.est_courante && can("court_decisions:update") && (
                       <Link to={`/decisions/${d.id}/correct`} className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900">
                         <Pencil className="h-4 w-4" /> Corriger
                       </Link>

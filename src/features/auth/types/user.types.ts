@@ -8,7 +8,11 @@ export type Role =
   | "PROCHE_REFERENT"
   | "REP_MIN_JUSTICE"
   | "REP_MIN_INTERIEUR"
-  | "ACTEUR_JUDICIAIRE";
+  // Acteurs judiciaires (anciennement ACTEUR_JUDICIAIRE, converti par sgpauth/0009)
+  | "GREFFIER"
+  | "JUGE_INSTRUCTION"
+  | "PROCUREUR"
+  | "AVOCAT";
 
 // granted : accès normal ; les autres valeurs bloquent l'application (page « Mon compte »)
 export type AccessStatus = "granted" | "pending" | "rejected" | "disabled" | "not_configured";
@@ -38,13 +42,13 @@ export interface RelativeMeLink {
   comment: string | null;
 }
 
-// Affectations actives de l'acteur judiciaire
+// Affectations actives de l'acteur judiciaire (function = son rôle)
 export interface JudicialMeLink {
   id: number;
   type: "judicial";
   prisoner_id: number;
   prisoner_name: string;
-  function: "JUGE_INSTRUCTION" | "GREFFIER" | "AVOCAT" | string;
+  function: Role;
   function_label: string;
   case_reference: string;
 }

@@ -5,19 +5,17 @@ import { useCreateUser, useUpdateUser } from "../../features/users/api/useUsers"
 import { AppUser, CreateUserDto, RelativeLinkInput, UpdateUserDto } from "../../features/users/types/user";
 import { Role } from "../../features/auth/types/user.types";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
-import { roleLabel, roleRequiresPrison } from "../../features/auth/config/rbac";
+import { isJudicialRole, roleLabel, roleRequiresPrison } from "../../features/auth/config/rbac";
 import { useGetPrisons } from "../../features/prisons/api/useGetPrison";
 import { Prison } from "../../features/prisons/types/prison";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { Detenu } from "../../features/detenus/types/detenu";
 import { LIENS_PARENTE } from "../../features/proches/types/proche";
-import { Affectation, FONCTIONS_JUDICIAIRES } from "../../features/affectations/types/affectation";
 import { useCreateAffectation, useGetAffectations } from "../../features/affectations/api/affectations.api";
 import { getApiErrorMessages } from "../../shared/api/errorMessages";
 
 interface AssignmentRow {
   detenu: string;
-  fonction: string;
   reference_dossier: string;
 }
 
@@ -28,7 +26,7 @@ interface LinkRow {
 }
 
 const EMPTY_LINK: LinkRow = { detenu: "", lien_parente: "MERE", motivation: "" };
-const EMPTY_ASSIGNMENT: AssignmentRow = { detenu: "", fonction: "JUGE_INSTRUCTION", reference_dossier: "" };
+const EMPTY_ASSIGNMENT: AssignmentRow = { detenu: "", reference_dossier: "" };
 
 interface UserFormProps {
   // Absent : création
@@ -72,7 +70,8 @@ export const UserForm: React.FC<UserFormProps> = ({ target, onDone, onCancel }) 
 
   const needsPrison = roleRequiresPrison(form.role);
   const isRelative = form.role === "PROCHE_REFERENT";
-  const isJudicial = form.role === "ACTEUR_JUDICIAIRE";
+  // Greffier, juge d'instruction, procureur, avocat : la fonction sur le dossier est le rôle du compte
+  const isJudicial = isJudicialRole(form.role);
   const pending = createUser.isPending || updateUser.isPending || createAssignment.isPending;
 
   const existingAssignments = useMemo(
@@ -96,7 +95,6 @@ export const UserForm: React.FC<UserFormProps> = ({ target, onDone, onCancel }) 
         await createAssignment.mutateAsync({
           acteur,
           detenu: Number(row.detenu),
-          fonction: row.fonction as Affectation["fonction"],
           reference_dossier: row.reference_dossier.trim(),
         });
       } catch (error) {
@@ -268,7 +266,7 @@ export const UserForm: React.FC<UserFormProps> = ({ target, onDone, onCancel }) 
               <ul className="space-y-1 text-sm text-gray-700">
                 {existingAssignments.map((a) => (
                   <li key={a.id}>
-                    {a.detenu_nom} — {a.fonction_label}{a.reference_dossier ? `, dossier ${a.reference_dossier}` : ""}
+                    {a.detenu_nom}{a.reference_dossier ? `, dossier ${a.reference_dossier}` : ""}
                   </li>
                 ))}
               </ul>
@@ -277,14 +275,9 @@ export const UserForm: React.FC<UserFormProps> = ({ target, onDone, onCancel }) 
               const set = (patch: Partial<AssignmentRow>) =>
                 setAssignments((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
               return (
-                <div key={index} className="grid grid-cols-1 items-end gap-3 md:grid-cols-[2fr_1fr_1fr_auto]">
+                <div key={index} className="grid grid-cols-1 items-end gap-3 md:grid-cols-[2fr_1fr_auto]">
                   <Field label="Détenu">
                     <DetenuSelect value={row.detenu} onChange={(v) => set({ detenu: v })} detenus={detenus as Detenu[]} required />
-                  </Field>
-                  <Field label="Fonction">
-                    <select value={row.fonction} onChange={(e) => set({ fonction: e.target.value })} className={INPUT}>
-                      {FONCTIONS_JUDICIAIRES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
                   </Field>
                   <Field label="Référence du dossier">
                     <input value={row.reference_dossier} onChange={(e) => set({ reference_dossier: e.target.value })} className={INPUT} />
@@ -299,7 +292,7 @@ export const UserForm: React.FC<UserFormProps> = ({ target, onDone, onCancel }) 
             </p>
           </fieldset>
         ) : (
-          <p className="text-sm text-gray-600">Les détenus de l'acteur judiciaire sont affectés par le super administrateur.</p>
+          <p className="text-sm text-gray-600">Les détenus d'un acteur judiciaire sont affectés par le super administrateur.</p>
         )
       )}
 
