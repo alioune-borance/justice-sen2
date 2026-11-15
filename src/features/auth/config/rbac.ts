@@ -72,6 +72,11 @@ export interface AccessRule {
 
 const MOCKUP: AccessRule = { roles: ["SUPER_ADMIN"] };
 
+// Acteurs directs de la prison : seuls à voir les écrans Visites, Transferts et Sorties
+// (affichage, même en mode observation ; le backend garde ses propres règles d'accès)
+export const PRISON_OPERATIONS_ROLES: Role[] = ["AGENT_PENITENTIAIRE", "ADMIN_PRISON", "SUPERVISEUR_PRISON"];
+const ops = (rule: AccessRule): AccessRule => ({ ...rule, alwaysRoles: PRISON_OPERATIONS_ROLES });
+
 // Accès par route (clé = chemin déclaré dans AppRouter.tsx). Absente = route ouverte à tout compte actif.
 export const ROUTE_ACCESS = {
   "/prison": { perm: "prisoners:read" },
@@ -79,16 +84,16 @@ export const ROUTE_ACCESS = {
   "/detenus/:id": { perm: "prisoners:read" },
   "/detenus/new": { perm: "prisoners:create" },
   "/detenus/update/:id": { perm: "prisoners:update" },
-  "/visits": { perm: "visits:read" },
-  "/visits/:id": { perm: "visits:read" },
-  "/visits/new": { perm: "visits:create" },
-  "/visits/update/:id": { perm: "visits:update" },
-  "/transfers": { anyOf: ["transfers:read", "exits:read"] },
-  "/transfers/:id": { perm: "transfers:read" },
-  "/transfers/new": { perm: "transfers:create" },
-  "/transfers/update/:id": { perm: "transfers:update" },
-  "/transfers/sorties/new": { perm: "exits:create" },
-  "/transfers/sorties/update/:id": { perm: "exits:update" },
+  "/visits": ops({ perm: "visits:read" }),
+  "/visits/:id": ops({ perm: "visits:read" }),
+  "/visits/new": ops({ perm: "visits:create" }),
+  "/visits/update/:id": ops({ perm: "visits:update" }),
+  "/transfers": ops({ anyOf: ["transfers:read", "exits:read"] }),
+  "/transfers/:id": ops({ perm: "transfers:read" }),
+  "/transfers/new": ops({ perm: "transfers:create" }),
+  "/transfers/update/:id": ops({ perm: "transfers:update" }),
+  "/transfers/sorties/new": ops({ perm: "exits:create" }),
+  "/transfers/sorties/update/:id": ops({ perm: "exits:update" }),
   "/incidents": { perm: "disciplinary_records:read" },
   "/incidents/new": { perm: "disciplinary_records:create" },
   "/incidents/update/:id": { perm: "disciplinary_records:update" },

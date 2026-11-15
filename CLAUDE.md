@@ -318,6 +318,7 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
 - **Configuration unique** : `features/auth/config/rbac.ts`. Ce fichier est un miroir d'affichage de `sgpauth/rbac/policy.py`. Il contient :
   - `ROLES` (12 rôles), `ROLE_LABELS`, et les familles `PRISON_ROLES`, `NATIONAL_READ_ONLY_ROLES`, `JUDICIAL_ROLES` (greffier, juge d'instruction, procureur, avocat ; ils remplacent `ACTEUR_JUDICIAIRE`), `MAGISTRATE_ROLES`, `PRISONER_LINKED_ROLES` ;
   - `ROUTE_ACCESS` : règle `{perm | anyOf | roles | alwaysRoles}` par chemin, lue à la fois par le routeur et par le menu. `roles` ne s'applique que si `rbac_enforced` ; `alwaysRoles` s'applique toujours, pour les ressources que le backend applique même en mode observation (saisie des décisions : `GREFFIER`) ;
+  - `PRISON_OPERATIONS_ROLES` (AG, AP, SP) : seuls rôles à qui s'affichent Visites, Transferts et Sorties (`alwaysRoles` sur toutes les routes `/visits*` et `/transfers*`, menu compris, même en mode observation) ;
   - `ACTIONS` : action nommée → permission ;
   - `HOME_REDIRECT`, les codes et messages de compte, `FORBIDDEN_MESSAGE` et `SESSION_EXPIRED_MESSAGE`.
 - **Droits d'affichage** (le backend reste seul juge) :
