@@ -123,6 +123,10 @@ export const ROUTE_ACCESS = {
   // Saisie et correction des décisions : greffier affecté uniquement
   "/decisions/new": { perm: "court_decisions:create", alwaysRoles: ["GREFFIER"] },
   "/decisions/:id/correct": { perm: "court_decisions:update", alwaysRoles: ["GREFFIER"] },
+  // Tableaux de bord nationaux : chaque ministère le sien, plus le SUPER_ADMIN ; appliqué par le backend
+  // même en mode observation, d'où alwaysRoles
+  "/statistiques/justice": { perm: "stats_justice:read", alwaysRoles: ["REP_MIN_JUSTICE", "SUPER_ADMIN"] },
+  "/statistiques/interieur": { perm: "stats_interieur:read", alwaysRoles: ["REP_MIN_INTERIEUR", "SUPER_ADMIN"] },
   "/generic-dashboard": MOCKUP,
   "/pardons": MOCKUP,
   "/reinsertion": MOCKUP,

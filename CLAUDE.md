@@ -86,6 +86,7 @@ justice-sen2/
 │   │   ├── demandes-visite/  #   /visit-requests, /visit-request-documents (circuit des visites)
 │   │   ├── permis/           #   /visit-permits (liste, révocation, vérification, lecture du QR)
 │   │   ├── decisions/        #   /court-decisions (décisions de justice versionnées)
+│   │   ├── stats/            #   /stats/justice/, /stats/interieur/ (tableaux de bord nationaux, lecture seule)
 │   │   └── shared/deplacement.ts  # interface commune Transfert/Sortie
 │   ├── pages/                # Pages routées branchées sur l'API (liste / détail / formulaire)
 │   │   ├── inmates/  visites/  transferts/  incidents/  infirmerie/  login/
@@ -334,7 +335,7 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
 - **Comptes bloqués** (`access` ≠ `granted`, ou 403 `account_*` d'axios) : `RequireAuth` redirige vers `/compte` (`pages/errors/AccountStatusPage.tsx`).
 - **Accueil** (`pages/home/HomePage.tsx`) et menu, selon le rôle :
   - PERSONNEL_SANTE → `/infirmerie` (`HOME_REDIRECT`) ;
-  - REP_MIN_JUSTICE et REP_MIN_INTERIEUR → `NationalDashboard`, vue nationale en lecture seule (indicateurs, détenus présents par établissement en graphique et en tableau) ;
+  - REP_MIN_JUSTICE → `JusticeDashboard`, REP_MIN_INTERIEUR → `InterieurDashboard` (`pages/stats/`, voir « Tableaux de bord nationaux ») ;
   - PROCHE_REFERENT et ACTEUR_JUDICIAIRE → `WelcomePage`, qui affiche « Mes détenus » (détenus filtrés par le backend, avec lien de parenté ou fonction et dossier) et des raccourcis filtrés par `ROUTE_ACCESS` ;
   - autres rôles → `Dashboard` de l'établissement.
   Le libellé de l'accueil dans le menu suit le rôle ; `hideFor` retire les entrées qui feraient doublon avec l'accueil.
@@ -360,6 +361,13 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - suivi (`features/demandes-visite/components/EtapesDemande.tsx`) : frise dépôt → greffe → magistrat → permis (ou dépôt → établissement → permis), avec pour chaque étape qui a transmis, validé ou refusé, quand et le motif, lus dans l'historique (`etape`, `decision`, `motif`, `auteur_role_label`). Elle est affichée au proche (rôle seul, noms masqués par le backend) et aux gestionnaires ;
   - `/permis` (`pages/permis/PermisPage.tsx`) : permis émis (filtre par état), PDF et révocation motivée ; le proche y voit ses permis ;
   - `/decisions` (`pages/decisions/`) : décisions par détenu (`?detenu=&historique=1` affiche les versions corrigées). Saisie et correction (version n+1, PDF, effet proposé pré-rempli selon le type) **réservées au greffier**. Application ou rejet de l'effet par l'AP ou le SP.
+- **Tableaux de bord nationaux** (`features/stats/`, `pages/stats/`) :
+  - données : `GET stats/justice/` et `stats/interieur/` uniquement (définitions dans PDSC `stats/indicators.py`), jamais recalculées depuis les listes ;
+  - routes `/statistiques/justice` (MJ, SA) et `/statistiques/interieur` (MI, SA), en `alwaysRoles` car le backend les applique même en mode observation ; accueil des deux ministères, entrées de menu pour le SA ;
+  - filtres dans l'URL (`?prison=1,2&du=&au=`, par défaut les 12 derniers mois) appliqués à tout le tableau ; la liste des prisons vient de la réponse sans filtre de prison ;
+  - stocks (effectifs, occupation) à la date du jour, signalés « À ce jour » ; flux sur la période ;
+  - évolution : le backend n'a pas de série, `useStatsSeries` appelle le même endpoint par tranche (mois jusqu'à 24 mois, puis trimestre, puis année) ; seuls les flux y figurent ;
+  - chaque graphique a sa vue tableau et la définition de l'indicateur en info-bulle ; palette dans `features/stats/utils/chartTheme.ts`.
 - **Statuts du détenu** : codes du backend (`PREVENU`, `ACCUSE`, `CONDAMNE_NON_DEFINITIF`, `CONDAMNE`, `LIBERE`, `EVADE`, `DECEDE`). Les libellés et familles sont dans `features/detenus/types/detenu.ts` (`prisonerStatusLabel`, `isJudicialStage`, `isSentenced`, `isInCustody`, `isClosed`) ; ne jamais comparer à un libellé.
 - **Vérification d'un permis** (`/verification-permis`, `pages/permis/VerificationPermisPage.tsx`, AG, SP et AP) :
   - saisie du numéro ou du code, ou lecture du QR `SIGEP-PV|numéro|code` ;

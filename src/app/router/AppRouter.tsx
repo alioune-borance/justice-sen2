@@ -47,6 +47,8 @@ import { PermisPage } from '../../pages/permis/PermisPage';
 import { VerificationPermisPage } from '../../pages/permis/VerificationPermisPage';
 import { DecisionsPage } from '../../pages/decisions/DecisionsPage';
 import { DecisionFormPage } from '../../pages/decisions/DecisionFormPage';
+import { JusticeDashboard } from '../../pages/stats/JusticeDashboard';
+import { InterieurDashboard } from '../../pages/stats/InterieurDashboard';
 
 // Garde d'affichage : la règle de chaque chemin est dans features/auth/config/rbac.ts (ROUTE_ACCESS).
 // Le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé.
@@ -208,6 +210,14 @@ export const router = createBrowserRouter([
                   { index: true, element: guard("/decisions", <DecisionsPage />) },
                   { path: "new", element: guard("/decisions/new", <DecisionFormPage />) },
                   { path: ":id/correct", element: guard("/decisions/:id/correct", <DecisionFormPage />) },
+                ],
+              },
+              {
+                // Tableaux de bord nationaux (lecture seule) ; accueil des ministères, voir HomePage
+                path: "statistiques",
+                children: [
+                  { path: "justice", element: guard("/statistiques/justice", <JusticeDashboard />) },
+                  { path: "interieur", element: guard("/statistiques/interieur", <InterieurDashboard />) },
                 ],
               },
               {

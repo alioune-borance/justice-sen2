@@ -19,10 +19,11 @@ import {
   FileBadge,
   Scale,
   ScanLine,
+  BarChart3,
 } from 'lucide-react';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { useRole } from '../../features/auth/hooks/useRole';
-import { PRISONER_LINKED_ROLES, ROUTE_ACCESS, RoutePath, isScreenAllowed } from '../../features/auth/config/rbac';
+import { NATIONAL_READ_ONLY_ROLES, PRISONER_LINKED_ROLES, ROUTE_ACCESS, RoutePath, isScreenAllowed } from '../../features/auth/config/rbac';
 import { Role } from '../../features/auth/types/user.types';
 
 interface NavItem {
@@ -46,6 +47,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/permis', label: 'Permis de visite', icon: <FileBadge className="h-5 w-5" /> },
   { path: '/verification-permis', label: 'Vérifier un permis', icon: <ScanLine className="h-5 w-5" /> },
   { path: '/decisions', label: 'Décisions de justice', icon: <Scale className="h-5 w-5" /> },
+  // Ministères : leur tableau de bord est déjà l'accueil
+  { path: '/statistiques/justice', label: 'Statistiques Justice', icon: <BarChart3 className="h-5 w-5" />, hideFor: NATIONAL_READ_ONLY_ROLES },
+  { path: '/statistiques/interieur', label: 'Statistiques Intérieur', icon: <BarChart3 className="h-5 w-5" />, hideFor: NATIONAL_READ_ONLY_ROLES },
   { path: '/proches', label: 'Proches à valider', icon: <HeartHandshake className="h-5 w-5" /> },
   { path: '/users', label: 'Utilisateurs', icon: <UserCog className="h-5 w-5" /> },
   { path: '/affectations', label: 'Affectations judiciaires', icon: <Gavel className="h-5 w-5" /> },
