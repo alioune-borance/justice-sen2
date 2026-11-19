@@ -87,6 +87,7 @@ justice-sen2/
 │   │   ├── permis/           #   /visit-permits (liste, révocation, vérification, lecture du QR)
 │   │   ├── decisions/        #   /court-decisions (décisions de justice versionnées)
 │   │   ├── stats/            #   /stats/justice/, /stats/interieur/ (tableaux de bord nationaux, lecture seule)
+│   │   ├── cantine/          #   /money-accounts, /money-operations, /money-deposits, /canteen-products|orders|limits
 │   │   └── shared/deplacement.ts  # interface commune Transfert/Sortie
 │   ├── pages/                # Pages routées branchées sur l'API (liste / détail / formulaire)
 │   │   ├── inmates/  visites/  transferts/  incidents/  infirmerie/  login/
@@ -317,7 +318,8 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - `features/auth/session.ts` : refresh proactif avant expiration, refresh unique (Web Locks + `BroadcastChannel` entre onglets), déconnexion propagée à tous les onglets, `queryClient.clear()`.
 - **Utilisateur** : `GET auth/me/` (`features/auth/types/user.types.ts`) fournit `role`, `prison`, `scope`, `permissions` (`"<ressource>:<read|create|update|delete|validate|complete>"`), `access` et `rbac_enforced`. Les rôles ne sont **plus** lus dans le JWT.
 - **Configuration unique** : `features/auth/config/rbac.ts`. Ce fichier est un miroir d'affichage de `sgpauth/rbac/policy.py`. Il contient :
-  - `ROLES` (12 rôles), `ROLE_LABELS`, et les familles `PRISON_ROLES`, `NATIONAL_READ_ONLY_ROLES`, `JUDICIAL_ROLES` (greffier, juge d'instruction, procureur, avocat ; ils remplacent `ACTEUR_JUDICIAIRE`), `MAGISTRATE_ROLES`, `PRISONER_LINKED_ROLES` ;
+  - `ROLES` (13 rôles), `ROLE_LABELS`, et les familles `PRISON_ROLES`, `NATIONAL_READ_ONLY_ROLES`, `JUDICIAL_ROLES` (greffier, juge d'instruction, procureur, avocat ; ils remplacent `ACTEUR_JUDICIAIRE`), `MAGISTRATE_ROLES`, `PRISONER_LINKED_ROLES`, `JUDICIAL_ASSIGNMENT_MANAGERS` (SA et `ADMIN_JUDICIAIRE`) ;
+  - `ADMIN_JUDICIAIRE` (national, sans établissement, créé par le SA) : redirigé vers `/affectations` (`HOME_REDIRECT`), seul écran autorisé (`ROLE_SCREENS`) ; création et fin des affectations via la règle `ASSIGNMENT_MANAGEMENT` (permission **et** rôle SA / ADJ, aussi dans `UserForm`) ;
   - `ROUTE_ACCESS` : règle `{perm | anyOf | roles | alwaysRoles}` par chemin, lue à la fois par le routeur et par le menu. `roles` ne s'applique que si `rbac_enforced` ; `alwaysRoles` s'applique toujours, pour les ressources que le backend applique même en mode observation (saisie des décisions : `GREFFIER`) ;
   - `PRISON_OPERATIONS_ROLES` (AG, AP, SP) : seuls rôles à qui s'affichent Visites, Transferts et Sorties (`alwaysRoles` sur toutes les routes `/visits*` et `/transfers*`, menu compris, même en mode observation) ;
   - `ACTIONS` : action nommée → permission ;
@@ -334,7 +336,7 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - **403 `account_*`** : redirection vers `/compte`.
 - **Comptes bloqués** (`access` ≠ `granted`, ou 403 `account_*` d'axios) : `RequireAuth` redirige vers `/compte` (`pages/errors/AccountStatusPage.tsx`).
 - **Accueil** (`pages/home/HomePage.tsx`) et menu, selon le rôle :
-  - PERSONNEL_SANTE → `/infirmerie` (`HOME_REDIRECT`) ;
+  - PERSONNEL_SANTE → `/infirmerie`, ADMIN_JUDICIAIRE → `/affectations` (`HOME_REDIRECT`) ;
   - REP_MIN_JUSTICE → `JusticeDashboard`, REP_MIN_INTERIEUR → `InterieurDashboard` (`pages/stats/`, voir « Tableaux de bord nationaux ») ;
   - PROCHE_REFERENT et ACTEUR_JUDICIAIRE → `WelcomePage`, qui affiche « Mes détenus » (détenus filtrés par le backend, avec lien de parenté ou fonction et dossier) et des raccourcis filtrés par `ROUTE_ACCESS` ;
   - autres rôles → `Dashboard` de l'établissement.
@@ -346,7 +348,7 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
     - Proche : un ou plusieurs détenus (`links`) à la création ; ensuite, via `/proches`.
     - Acteurs judiciaires : affectations (détenu, dossier) créées après le compte par `judicial-assignments/` (si `judicial_assignments:create`) ; la fonction n'est plus saisie, c'est le rôle du compte.
   - `/proches` : file de validation des proches (pièces téléchargées via l'API, jamais par URL media) ;
-  - `/affectations` : affectations judiciaires, gérées par le SA ;
+  - `/affectations` : affectations judiciaires, gérées par le SA et l'ADMIN_JUDICIAIRE (qui ne reçoit que les comptes judiciaires) ; chaque acteur judiciaire y lit les siennes ;
   - `/inscription` (public) : inscription d'un proche ;
   - `features/proches/components/RelativeRequestsPanel.tsx` : demandes et dépôt de pièces du proche, aussi affiché sur `/compte` pendant l'attente de validation.
 - **Circuit des visites, côté proche (`/mes-demandes`)** :
@@ -360,7 +362,12 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - `/demandes/:id` (`DemandeVerificationPage`) : les actions n'apparaissent qu'à l'étape de l'utilisateur. Greffe : prise en charge, vérification pièce par pièce, complément, « Transmettre au juge d'instruction / procureur » (bloqué tant que `problemes_validation` n'est pas vide), refus motivé. Magistrat et prison : validation (permis émis) et refus motivé. Sinon, l'étape en cours est seulement affichée ;
   - suivi (`features/demandes-visite/components/EtapesDemande.tsx`) : frise dépôt → greffe → magistrat → permis (ou dépôt → établissement → permis), avec pour chaque étape qui a transmis, validé ou refusé, quand et le motif, lus dans l'historique (`etape`, `decision`, `motif`, `auteur_role_label`). Elle est affichée au proche (rôle seul, noms masqués par le backend) et aux gestionnaires ;
   - `/permis` (`pages/permis/PermisPage.tsx`) : permis émis (filtre par état), PDF et révocation motivée ; le proche y voit ses permis ;
-  - `/decisions` (`pages/decisions/`) : décisions par détenu (`?detenu=&historique=1` affiche les versions corrigées). Saisie et correction (version n+1, PDF, effet proposé pré-rempli selon le type) **réservées au greffier**. Application ou rejet de l'effet par l'AP ou le SP.
+  - `/decisions` (`pages/decisions/`) : décisions par détenu (`?detenu=&historique=1` affiche les versions corrigées). Saisie et correction (version n+1, PDF, effet proposé pré-rempli selon le type) **réservées au greffier**. Application ou rejet de l'effet par l'AP ou le SP, depuis la liste des détenus (`PendingDecisionEffects` sans `detenuId`, compteur sur l'entrée « Gestion des détenus » du menu) ou la fiche du détenu : l'écran `/decisions` et « Mes demandes de visite » leur sont fermés (`exceptRoles: PRISON_MANAGEMENT_ROLES`).
+- **Infirmerie** : le personnel de santé (accueil `/infirmerie`, seul écran) gère les dossiers médicaux ; l'AP et le SP voient `InfirmerieActivitePage` : détenus suivis et dates de prise en charge, jamais la pathologie ni la description (`GET health-activity/`, ressource backend `health_activity`, rôle et prison appliqués même en mode observation). Le secret médical de `sgpauth/rbac/medical.py` est inchangé.
+- **Ministères** : `ROLE_SCREENS` limite REP_MIN_JUSTICE à l'accueil (`JusticeDashboard`), `/statistiques/justice` et `/notifications` ; REP_MIN_INTERIEUR de même avec l'Intérieur.
+- **Acteurs judiciaires** (greffier, juge d'instruction, procureur, avocat) : `ROLE_SCREENS` les limite à l'accueil « Mes détenus », `/demandes`, `/decisions` (« Saisir une décision » au menu pour le greffier seul), `/affectations` et `/notifications` ; plus d'accès à `/permis` (lien « Gérer les permis » masqué).
+- **Agent pénitentiaire** : `notForAgent` (`rbac.ts`) lui ferme « Mes demandes de visite », « Demandes de visite », « Permis de visite », « Décisions de justice », « Proches à valider », « Utilisateurs », « Affectations judiciaires » et « Établissements », même en mode observation ; il garde « Vérifier un permis » et « Commandes cantine » (backend `canteen_orders` « rux »).
+- **Établissements** (`/etablissements`) : le SA voit, ajoute et modifie tous les établissements ; un compte rattaché à une prison ne voit que la sienne ; l'AP et le SP la modifient (`PRISON_ACTIONS`, backend `prisons` SP « ru »), sans pouvoir en ajouter.
 - **Tableaux de bord nationaux** (`features/stats/`, `pages/stats/`) :
   - données : `GET stats/justice/` et `stats/interieur/` uniquement (définitions dans PDSC `stats/indicators.py`), jamais recalculées depuis les listes ;
   - routes `/statistiques/justice` (MJ, SA) et `/statistiques/interieur` (MI, SA), en `alwaysRoles` car le backend les applique même en mode observation ; accueil des deux ministères, entrées de menu pour le SA ;
@@ -368,12 +375,19 @@ SGPUser (username, email, first_name, last_name, is_active, date_joined)  — sa
   - stocks (effectifs, occupation) à la date du jour, signalés « À ce jour » ; flux sur la période ;
   - évolution : le backend n'a pas de série, `useStatsSeries` appelle le même endpoint par tranche (mois jusqu'à 24 mois, puis trimestre, puis année) ; seuls les flux y figurent ;
   - chaque graphique a sa vue tableau et la définition de l'indicateur en info-bulle ; palette dans `features/stats/utils/chartTheme.ts`.
+- **Compte argent et cantine** (`features/cantine/`, `pages/cantine/`) — backend toujours appliqué, jamais SA ni ministères :
+  - règles dans `rbac.ts` : routes en `alwaysRoles` ; boutons via `allows(CANTEEN_ACTIONS.x)` (permission **et** rôle, car `/me` accorde tout en mode observation), avec `isMyPrison` côté personnel ;
+  - proche : `/compte-detenu` (solde, jauges des plafonds de la période, dépôt Wave / Orange Money, ses dépôts, journal), `/cantine` (catalogue actif de la prison du détenu, panier), `/cantine/commandes` (suivi, annulation tant qu'`EN_ATTENTE`). Détenu choisi parmi les liens `ACTIF` de `/me`, gardé dans `?detenu=` (`useDetenuChoisi`) ;
+  - dépôt : `POST money-deposits/` puis relecture toutes les 4 s tant que `INITIE` (`useDepotSuivi`) ; le crédit vient de la notification de l'opérateur au backend, jamais du front ; lien `url_paiement` affiché seulement en http(s) ;
+  - AP (SP en lecture) : `/cantine/catalogue` (ajout, modification, retrait sans suppression), `/cantine/plafonds` (période, dépôt et dépense maximum ; valeurs par défaut du backend sans ligne), `/comptes` (soldes, journal d'un compte, dépôts des proches) ;
+  - AP, SP et AG (`CANTEEN_ORDER_HANDLERS`, depuis le 2026-11-18) : `/cantine/preparation`, onglets « À préparer » (`prepare/`) et « À livrer » (`deliver/`), annulation motivée (remboursement), rafraîchie chaque minute ;
+  - montants en F CFA entiers (`formatFcfa`) ; solde, plafonds et stock sont vérifiés par le backend, les contrôles du panier ne sont qu'indicatifs ; toute écriture invalide les clés `["cantine", …]`.
 - **Statuts du détenu** : codes du backend (`PREVENU`, `ACCUSE`, `CONDAMNE_NON_DEFINITIF`, `CONDAMNE`, `LIBERE`, `EVADE`, `DECEDE`). Les libellés et familles sont dans `features/detenus/types/detenu.ts` (`prisonerStatusLabel`, `isJudicialStage`, `isSentenced`, `isInCustody`, `isClosed`) ; ne jamais comparer à un libellé.
 - **Vérification d'un permis** (`/verification-permis`, `pages/permis/VerificationPermisPage.tsx`, AG, SP et AP) :
   - saisie du numéro ou du code, ou lecture du QR `SIGEP-PV|numéro|code` ;
   - la lecture du QR passe par l'API native `BarcodeDetector` (`features/permis/utils/qrScanner.ts`, sans dépendance) ; une douchette USB fonctionne comme une saisie clavier ;
   - le résultat s'affiche en grand avec les éléments à contrôler sur la pièce d'identité ; chaque contrôle est tracé par le backend.
-- **Mode observation** : tant que le backend a `RBAC_ENFORCED=False`, `/me` renvoie toutes les permissions sauf le médical. L'interface montre donc tout, sauf l'infirmerie (réservée à PERSONNEL_SANTE).
+- **Mode observation** : tant que le backend a `RBAC_ENFORCED=False`, `/me` renvoie toutes les permissions sauf le médical. Les écrans sont donc limités par rôle dans `ROLE_SCREENS` (`rbac.ts`, appliqué au menu, aux gardes de route et aux raccourcis de l'accueil) : PERSONNEL_SANTE → infirmerie ; ADMIN_JUDICIAIRE → affectations ; PROCHE_REFERENT → accueil, `/mes-demandes`, `/permis`, `/compte-detenu`, `/cantine` (hors écrans du personnel). Les autres rôles voient encore tout ce que leurs `alwaysRoles` n'excluent pas.
 
 ---
 

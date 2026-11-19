@@ -9,6 +9,7 @@ import { Prison } from '../../features/prisons/types/prison';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { Can } from '../../features/auth/components/Can';
 import { getApiErrorMessage } from '../../shared/api/errorMessages';
+import { PendingDecisionEffects } from '../../features/decisions/components/PendingDecisionEffects';
 
 // Statuts pour lesquels la libération n'a plus de sens
 const documents = [
@@ -209,6 +210,9 @@ export const InmateDetailPage: React.FC = () => {
           </Can>
         </div>
       </div>
+
+      {/* Décisions de justice dont l'effet sur le statut attend la prison (AP / SP : Appliquer / Écarter) */}
+      <PendingDecisionEffects detenuId={detenu.id} />
 
       {/* Main Card - MAKE SURE THIS FULL CARD IS RETURNED */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200">

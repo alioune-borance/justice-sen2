@@ -3,17 +3,22 @@ import { Building2, Pencil, Plus, X } from "lucide-react";
 import { useCreatePrison, useGetPrisons, useUpdatePrison } from "../../features/prisons/api/useGetPrison";
 import { Prison } from "../../features/prisons/types/prison";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
-import { Can } from "../../features/auth/components/Can";
+import { PRISON_ACTIONS } from "../../features/auth/config/rbac";
 import { getApiErrorMessages } from "../../shared/api/errorMessages";
 
 const INPUT = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm";
 const EMPTY = { name: "", location: "", capacity: "", type: "" };
 
-// Établissements : le SUPER_ADMIN en ajoute ; le SUPER_ADMIN ou l'ADMIN_PRISON (le sien) les modifie.
-// Les autres établissements ne sont visibles qu'en annuaire (nom, localisation).
+// Établissements : le SUPER_ADMIN les voit tous, en ajoute et les modifie. Un compte rattaché à une prison
+// (AP, SP…) ne voit que la sienne ; l'AP et le SP la modifient, sans pouvoir en ajouter.
 export const EtablissementsPage: React.FC = () => {
-  const { can, isMyPrison } = usePermissions();
-  const { data: prisons = [], isLoading } = useGetPrisons();
+  const { user, allows, isMyPrison } = usePermissions();
+  const { data: allPrisons = [], isLoading } = useGetPrisons();
+  const ownPrisonId = user?.prison?.id ?? null;
+  const prisons = ownPrisonId === null ? allPrisons : allPrisons.filter((p: Prison) => p.id === ownPrisonId);
+  const canCreate = allows(PRISON_ACTIONS.create);
+  const canUpdate = (prison: Prison) =>
+    allows(PRISON_ACTIONS.update) && isMyPrison(prison.id) && (ownPrisonId === null || prison.id === ownPrisonId);
   const create = useCreatePrison();
   const update = useUpdatePrison();
   const [form, setForm] = useState(EMPTY);
@@ -63,9 +68,11 @@ export const EtablissementsPage: React.FC = () => {
           <div className="bg-blue-100 rounded-lg p-2">
             <Building2 className="h-6 w-6 text-blue-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800">Établissements pénitentiaires</h2>
+          <h2 className="text-2xl font-bold text-slate-800">
+            {ownPrisonId === null ? "Établissements pénitentiaires" : "Mon établissement"}
+          </h2>
         </div>
-        <Can perm="prisons:create" when={!showForm}>
+        {canCreate && !showForm && (
           <button
             onClick={() => { close(); setShowForm(true); }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -73,7 +80,7 @@ export const EtablissementsPage: React.FC = () => {
             <Plus className="h-4 w-4" />
             Nouvel établissement
           </button>
-        </Can>
+        )}
       </div>
 
       {showForm && (
@@ -129,7 +136,7 @@ export const EtablissementsPage: React.FC = () => {
                   <td className="py-3 pr-4">{prison.type ?? "—"}</td>
                   <td className="py-3 pr-4">{prison.capacity ?? "—"}</td>
                   <td className="py-3 text-right">
-                    {can("prisons:update") && isMyPrison(prison.id) && (
+                    {canUpdate(prison) && (
                       <button
                         onClick={() => startEdit(prison)}
                         className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"

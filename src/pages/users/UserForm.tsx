@@ -5,7 +5,7 @@ import { useCreateUser, useUpdateUser } from "../../features/users/api/useUsers"
 import { AppUser, CreateUserDto, RelativeLinkInput, UpdateUserDto } from "../../features/users/types/user";
 import { Role } from "../../features/auth/types/user.types";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
-import { isJudicialRole, roleLabel, roleRequiresPrison } from "../../features/auth/config/rbac";
+import { ASSIGNMENT_MANAGEMENT, isJudicialRole, roleLabel, roleRequiresPrison } from "../../features/auth/config/rbac";
 import { useGetPrisons } from "../../features/prisons/api/useGetPrison";
 import { Prison } from "../../features/prisons/types/prison";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
@@ -39,10 +39,10 @@ interface UserFormProps {
 // sont appliquées par le backend ; le formulaire n'affiche que les champs utiles au rôle choisi.
 export const UserForm: React.FC<UserFormProps> = ({ target, onDone, onCancel }) => {
   const isEdit = !!target;
-  const { user, role: myRole, can } = usePermissions();
+  const { user, role: myRole, allows } = usePermissions();
   const { data: prisons = [] } = useGetPrisons();
   const { data: detenus = [] } = useGetDetenus();
-  const canManageAssignments = can("judicial_assignments:create");
+  const canManageAssignments = allows(ASSIGNMENT_MANAGEMENT);
   const { data: allAssignments = [] } = useGetAffectations({ enabled: isEdit && canManageAssignments });
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();

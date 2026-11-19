@@ -8,6 +8,8 @@ export type Role =
   | "PROCHE_REFERENT"
   | "REP_MIN_JUSTICE"
   | "REP_MIN_INTERIEUR"
+  // National : affecte les détenus aux acteurs judiciaires (créé par le SUPER_ADMIN seul)
+  | "ADMIN_JUDICIAIRE"
   // Acteurs judiciaires (anciennement ACTEUR_JUDICIAIRE, converti par sgpauth/0009)
   | "GREFFIER"
   | "JUGE_INSTRUCTION"

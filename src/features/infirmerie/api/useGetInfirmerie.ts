@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { HealthRecord } from '../types/infirmerie';
 import {
   getInfirmeriePatients,
+  getHealthActivity,
   getPrisonerById,
   addHealthRecord,
   updateHealthRecord,
@@ -13,6 +14,14 @@ export const useGetInfirmeriePatients = () =>
     queryKey: ['infirmerie'],
     queryFn: () => getInfirmeriePatients(),
     staleTime: 5 * 60 * 1000,
+  });
+
+export const useGetHealthActivity = (enabled: boolean) =>
+  useQuery({
+    queryKey: ['infirmerie', 'activite'],
+    queryFn: getHealthActivity,
+    enabled,
+    staleTime: 60 * 1000,
   });
 
 export const useGetInfirmeriePatientById = (id: number) =>

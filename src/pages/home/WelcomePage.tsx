@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, UserRound } from "lucide-react";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 import { useRole } from "../../features/auth/hooks/useRole";
-import { ROUTE_ACCESS, RoutePath } from "../../features/auth/config/rbac";
+import { ROUTE_ACCESS, RoutePath, isScreenAllowed } from "../../features/auth/config/rbac";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { useGetPrisons } from "../../features/prisons/api/useGetPrison";
 import { Detenu, prisonerStatusLabel } from "../../features/detenus/types/detenu";
@@ -15,6 +15,8 @@ const SHORTCUTS: { path: RoutePath; label: string }[] = [
   { path: "/mes-demandes/new", label: "Demander un permis de visite" },
   { path: "/mes-demandes", label: "Suivre mes demandes" },
   { path: "/permis", label: "Permis de visite" },
+  { path: "/compte-detenu", label: "Compte et dépôt d'argent" },
+  { path: "/cantine", label: "Commander à la cantine" },
   { path: "/demandes", label: "Demandes à traiter" },
   { path: "/decisions/new", label: "Saisir une décision" },
   { path: "/decisions", label: "Décisions de justice" },
@@ -27,10 +29,21 @@ export const WelcomePage: React.FC = () => {
   const { label, isRelative, isJudicialActor } = useRole();
   const canReadPrisoners = can("prisoners:read");
 
-  // Le backend ne renvoie que les détenus liés (proche) ou affectés (acteur judiciaire)
-  const { data: detenus = [], isLoading } = useGetDetenus();
+  const { data: allDetenus = [], isLoading } = useGetDetenus();
   const { data: prisons = [] } = useGetPrisons();
-  const links = user?.links ?? [];
+  const links = useMemo(() => user?.links ?? [], [user]);
+
+  // Seuls les détenus de ses liens ACTIF (proche) ou de ses affectations actives (acteur judiciaire),
+  // lus dans /me. Nécessaire en mode observation, où prisoners/ n'est pas filtré par le backend.
+  // Affichage seulement : le cloisonnement réel des données reste du ressort du backend.
+  const detenus = useMemo(() => {
+    const mine = new Set(
+      links
+        .filter((l) => l.prisoner_id !== null && (l.type === "judicial" || l.status === "ACTIF"))
+        .map((l) => l.prisoner_id as number)
+    );
+    return (allDetenus as Detenu[]).filter((d) => mine.has(d.id));
+  }, [allDetenus, links]);
 
   const prisonName = useMemo(() => {
     const names = new Map((prisons as Prison[]).map((p) => [p.id, p.name]));
@@ -45,7 +58,8 @@ export const WelcomePage: React.FC = () => {
       : link.relationship_label;
   };
 
-  const shortcuts = SHORTCUTS.filter((s) => allows(ROUTE_ACCESS[s.path]));
+  // Mêmes règles que le menu : écrans du rôle (ROLE_SCREENS) et règle d'accès de la route
+  const shortcuts = SHORTCUTS.filter((s) => isScreenAllowed(user?.role, s.path) && allows(ROUTE_ACCESS[s.path]));
   const pendingLinks = links.filter((l) => l.type === "relative" && l.prisoner_id === null);
   const showPrisoners = canReadPrisoners && (isRelative || isJudicialActor);
 
@@ -84,7 +98,7 @@ export const WelcomePage: React.FC = () => {
             </p>
           ) : (
             <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
-              {(detenus as Detenu[]).map((d) => (
+              {detenus.map((d) => (
                 <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
                   <span className="flex items-center gap-2">
                     <UserRound className="h-4 w-4 text-gray-400" />

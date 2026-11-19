@@ -5,6 +5,7 @@ import { Sidebar } from '../sidebar/Sidebar';
 import { useAuthStore } from '../../features/auth/store/auth.store';
 import { useLogout } from '../../features/auth/hooks/useLogout';
 import { NoticeBanner } from '../../shared/notifications/NoticeBanner';
+import { NotificationBell } from '../../features/notifications/components/NotificationBell';
 
 
 interface LayoutProps {
@@ -25,6 +26,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Main content */}
         <div className="flex-1">
           <header className="flex items-center justify-end gap-4 border-b border-gray-200 bg-white px-6 py-3">
+            {/* Notifications in-app : nombre de non lues et dernières notifications */}
+            <NotificationBell />
             {displayName && (
               <span className="flex items-center gap-2 text-sm text-gray-700">
                 <UserCircle className="h-5 w-5 text-gray-500" />

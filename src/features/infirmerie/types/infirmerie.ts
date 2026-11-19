@@ -6,6 +6,16 @@ export interface HealthRecord {
   date_of_diagnosis: string;
 }
 
+// GET health-activity/ : activité de l'infirmerie SANS donnée médicale (AP / SP), ni pathologie ni description
+export interface HealthActivity {
+  id: number;
+  prisoner: number;
+  prisoner_name: string;
+  matricule_number: string | null;
+  prisoner_status: string;
+  date_of_diagnosis: string;
+}
+
 export interface InfirmeriePatient {
   id: number;
   cell: number;

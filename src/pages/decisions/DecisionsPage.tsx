@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, Download, Gavel, History, Pencil, Plus, X } from "lucide-react";
-import { downloadDecision, useDecisionEffect, useGetDecisions } from "../../features/decisions/api/decisions.api";
-import { DecisionJustice, EFFET_STYLES, TYPES_DECISION } from "../../features/decisions/types/decision";
+import { Download, Gavel, History, Pencil, Plus } from "lucide-react";
+import { downloadDecision, useGetDecisions } from "../../features/decisions/api/decisions.api";
+import { EFFET_STYLES, TYPES_DECISION } from "../../features/decisions/types/decision";
+import { DecisionEffectActions } from "../../features/decisions/components/DecisionEffectActions";
+import { useCanApplyDecisionEffect } from "../../features/decisions/hooks/useCanApplyDecisionEffect";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { Detenu } from "../../features/detenus/types/detenu";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 import { Can } from "../../features/auth/components/Can";
-import { useRole } from "../../features/auth/hooks/useRole";
 import { ROUTE_ACCESS } from "../../features/auth/config/rbac";
 import { prisonerStatusLabel } from "../../features/detenus/types/detenu";
 import { formatDate, formatDateTime } from "../../shared/utils/dates";
@@ -31,17 +32,13 @@ export const DecisionsPage: React.FC = () => {
     historique,
   });
   const { data: detenus = [] } = useGetDetenus();
-  const effect = useDecisionEffect();
-  const { can, allows, isMyPrison } = usePermissions();
+  const { allows } = usePermissions();
   // Saisie et correction : greffier seulement (règle appliquée par le backend, même en mode observation)
   const canEnter = allows(ROUTE_ACCESS["/decisions/new"]);
   const canCorrect = allows(ROUTE_ACCESS["/decisions/:id/correct"]);
-  // Effet sur le statut : AP / SP de la prison du détenu
-  const { is } = useRole();
-  const canApplyEffect = can("court_decisions:validate") && is("ADMIN_PRISON", "SUPERVISEUR_PRISON");
+  // Effet sur le statut : AP / SP de la prison actuelle du détenu
+  const canApplyEffect = useCanApplyDecisionEffect();
 
-  const [dismissing, setDismissing] = useState<number | null>(null);
-  const [motif, setMotif] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -67,20 +64,6 @@ export const DecisionsPage: React.FC = () => {
     } catch (error) {
       setErrors(getApiErrorMessages(error));
       return false;
-    }
-  };
-
-  const apply = (d: DecisionJustice) => {
-    if (!window.confirm(`Appliquer l'effet proposé : ${d.detenu_nom} passe au statut « ${prisonerStatusLabel(d.statut_propose)} » ?`)) return;
-    run(() => effect.mutateAsync({ id: d.id, apply: true }), `Statut de ${d.detenu_nom} mis à jour.`);
-  };
-
-  const dismiss = async (d: DecisionJustice) => {
-    if (!motif.trim()) return;
-    const done = await run(() => effect.mutateAsync({ id: d.id, apply: false, motif: motif.trim() }), "Effet écarté.");
-    if (done) {
-      setDismissing(null);
-      setMotif("");
     }
   };
 
@@ -179,29 +162,12 @@ export const DecisionsPage: React.FC = () => {
                         <Pencil className="h-4 w-4" /> Corriger
                       </Link>
                     )}
-                    <Can perm="court_decisions:validate" when={canApplyEffect && d.effet_etat === "PROPOSE" && d.est_courante && isMyPrison(d.prison)}>
-                      <button type="button" disabled={effect.isPending} onClick={() => apply(d)}
-                        className="flex items-center gap-1 rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50">
-                        <Check className="h-4 w-4" /> Appliquer
-                      </button>
-                      <button type="button" disabled={effect.isPending} onClick={() => { setDismissing(d.id); setMotif(""); }}
-                        className="flex items-center gap-1 rounded-md bg-gray-600 px-2 py-1 text-sm text-white hover:bg-gray-700 disabled:opacity-50">
-                        <X className="h-4 w-4" /> Écarter
-                      </button>
-                    </Can>
+                    <DecisionEffectActions
+                      decision={d}
+                      onResult={({ success: ok, errors: messages }) => { setSuccess(ok ?? null); setErrors(messages ?? []); }}
+                    />
                   </div>
                 </div>
-                {dismissing === d.id && (
-                  <div className="flex flex-col gap-2 md:flex-row">
-                    <input value={motif} onChange={(e) => setMotif(e.target.value)} autoFocus maxLength={2000}
-                      placeholder="Motif (obligatoire)" className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm" />
-                    <button type="button" disabled={!motif.trim() || effect.isPending} onClick={() => dismiss(d)}
-                      className="rounded-md bg-gray-700 px-3 py-1.5 text-sm text-white disabled:opacity-50">
-                      Confirmer
-                    </button>
-                    <button type="button" onClick={() => setDismissing(null)} className="px-3 py-1.5 text-sm text-gray-600">Annuler</button>
-                  </div>
-                )}
               </li>
             ))}
           </ul>

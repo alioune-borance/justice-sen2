@@ -65,6 +65,19 @@ export const useGetDecisions = (filters?: DecisionFilters, options?: { enabled?:
     staleTime: 30 * 1000,
   });
 
+// Nombre de décisions dont l'effet attend la prison (compteur du menu, AP / SP). Le backend ne renvoie à la
+// prison que les décisions de ses détenus actuels. Rafraîchi régulièrement : une saisie du greffier y apparaît seule.
+export const usePendingDecisionEffectsCount = (enabled: boolean) => {
+  const { data } = useQuery({
+    queryKey: ["decisions", { effet: "PROPOSE" }],
+    queryFn: () => getDecisions({ effet: "PROPOSE" }),
+    enabled,
+    staleTime: 30 * 1000,
+    refetchInterval: enabled ? 2 * 60 * 1000 : false,
+  });
+  return data?.length ?? 0;
+};
+
 export const useGetDecision = (id: number) =>
   useQuery({ queryKey: ["decision", id], queryFn: () => getDecision(id), enabled: !!id });
 

@@ -13,6 +13,7 @@ import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { Prison } from '../../features/prisons/types/prison'; // Import Prison type
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { Can } from '../../features/auth/components/Can';
+import { PendingDecisionEffects } from '../../features/decisions/components/PendingDecisionEffects';
 
 export const InmateListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -333,6 +334,9 @@ export const InmateListPage: React.FC = () => {
           </Can>
         </div>
       </div>
+
+      {/* AP / SP : décisions de justice dont l'effet sur le statut attend leur validation */}
+      <PendingDecisionEffects />
 
       {/* Table Section */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">

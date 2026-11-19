@@ -14,7 +14,7 @@ import { EtapesDemande } from "../../features/demandes-visite/components/EtapesD
 import { downloadPermis } from "../../features/permis/api/permis.api";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 import { useRole } from "../../features/auth/hooks/useRole";
-import { roleLabel } from "../../features/auth/config/rbac";
+import { ROUTE_ACCESS, isScreenAllowed, roleLabel } from "../../features/auth/config/rbac";
 import { STEP_BY_ROLE } from "../../features/demandes-visite/types/demande";
 import { formatDate, formatDateTime } from "../../shared/utils/dates";
 import { getApiErrorMessages } from "../../shared/api/errorMessages";
@@ -31,8 +31,10 @@ export const DemandeVerificationPage: React.FC = () => {
   const { data: demande, isLoading, isError } = useGetDemande(id);
   const action = useDemandeAction();
   const review = useReviewPieceDemande();
-  const { can } = usePermissions();
+  const { can, allows } = usePermissions();
   const { role } = useRole();
+  // Écran des permis fermé aux acteurs judiciaires (ROLE_SCREENS) et à l'agent
+  const canOpenPermits = isScreenAllowed(role, "/permis") && allows(ROUTE_ACCESS["/permis"]);
 
   const [dialog, setDialog] = useState<Dialog>(null);
   const [text, setText] = useState("");
@@ -236,7 +238,9 @@ export const DemandeVerificationPage: React.FC = () => {
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
               <Download className="h-4 w-4" /> PDF
             </button>
-            <Link to="/permis" className="text-sm text-blue-600 hover:underline">Gérer les permis</Link>
+            {canOpenPermits && (
+              <Link to="/permis" className="text-sm text-blue-600 hover:underline">Gérer les permis</Link>
+            )}
           </div>
         </section>
       )}

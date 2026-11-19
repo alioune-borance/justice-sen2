@@ -14,8 +14,17 @@ import { useNavigate } from 'react-router-dom';
 import { useGetInfirmeriePatients } from '../../features/infirmerie/api/useGetInfirmerie';
 import { InfirmeriePatient, HealthRecord } from '../../features/infirmerie/types/infirmerie';
 import { Can } from '../../features/auth/components/Can';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { InfirmerieActivitePage } from './InfirmerieActivitePage';
 
+// Personnel de santé : dossiers médicaux. AP / SP : activité de l'infirmerie, sans donnée médicale
+// (le backend ne leur ouvre jamais health_records, même en mode observation).
 export const InfirmeriePage: React.FC = () => {
+  const { can } = usePermissions();
+  return can('health_records:read') ? <InfirmerieMedicalPage /> : <InfirmerieActivitePage />;
+};
+
+const InfirmerieMedicalPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: allPatients = [], isLoading } = useGetInfirmeriePatients();
 

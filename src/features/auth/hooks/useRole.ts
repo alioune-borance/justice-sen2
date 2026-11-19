@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useAuthStore } from "../store/auth.store";
 import {
   JUDICIAL_ROLES,
+  JUDICIAL_ASSIGNMENT_MANAGERS,
   MAGISTRATE_ROLES,
   NATIONAL_READ_ONLY_ROLES,
   PRISON_ROLES,
@@ -29,6 +30,10 @@ export const useRole = () => {
       isGreffier: role === "GREFFIER",
       // Juge d'instruction (prévenus) ou procureur (accusés) : étape 2 des demandes de visite
       isMagistrate: role !== null && MAGISTRATE_ROLES.includes(role),
+      // Administrateur judiciaire (affecte les détenus aux acteurs judiciaires)
+      isJudicialAdmin: role === "ADMIN_JUDICIAIRE",
+      // SUPER_ADMIN ou ADMIN_JUDICIAIRE
+      managesAssignments: role !== null && JUDICIAL_ASSIGNMENT_MANAGERS.includes(role),
     }),
     [role, user?.role_label, user?.prison]
   );

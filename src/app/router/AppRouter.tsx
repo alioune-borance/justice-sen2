@@ -46,9 +46,17 @@ import { DemandeVerificationPage } from '../../pages/demandes-visite/DemandeVeri
 import { PermisPage } from '../../pages/permis/PermisPage';
 import { VerificationPermisPage } from '../../pages/permis/VerificationPermisPage';
 import { DecisionsPage } from '../../pages/decisions/DecisionsPage';
+import { NotificationsPage } from '../../pages/notifications/NotificationsPage';
 import { DecisionFormPage } from '../../pages/decisions/DecisionFormPage';
 import { JusticeDashboard } from '../../pages/stats/JusticeDashboard';
 import { InterieurDashboard } from '../../pages/stats/InterieurDashboard';
+import { CompteDetenuPage } from '../../pages/cantine/CompteDetenuPage';
+import { CantinePage } from '../../pages/cantine/CantinePage';
+import { MesCommandesPage } from '../../pages/cantine/MesCommandesPage';
+import { PreparationCommandesPage } from '../../pages/cantine/PreparationCommandesPage';
+import { CatalogueAdminPage } from '../../pages/cantine/CatalogueAdminPage';
+import { PlafondsPage } from '../../pages/cantine/PlafondsPage';
+import { ComptesPrisonPage } from '../../pages/cantine/ComptesPrisonPage';
 
 // Garde d'affichage : la règle de chaque chemin est dans features/auth/config/rbac.ts (ROUTE_ACCESS).
 // Le backend refuse de toute façon (403 / 404) ce qui n'est pas autorisé.
@@ -204,12 +212,28 @@ export const router = createBrowserRouter([
                 path: "verification-permis",
                 element: guard("/verification-permis", <VerificationPermisPage />),
               },
+              // Notifications de l'utilisateur (tous les rôles ; cloche dans l'en-tête)
+              { path: "notifications", element: guard("/notifications", <NotificationsPage />) },
               {
                 path: "decisions",
                 children: [
                   { index: true, element: guard("/decisions", <DecisionsPage />) },
                   { path: "new", element: guard("/decisions/new", <DecisionFormPage />) },
                   { path: ":id/correct", element: guard("/decisions/:id/correct", <DecisionFormPage />) },
+                ],
+              },
+              // Compte argent et cantine : proche (compte, cantine, commandes), AG / AP (préparation),
+              // AP / SP (catalogue, plafonds, comptes de la prison)
+              { path: "compte-detenu", element: guard("/compte-detenu", <CompteDetenuPage />) },
+              { path: "comptes", element: guard("/comptes", <ComptesPrisonPage />) },
+              {
+                path: "cantine",
+                children: [
+                  { index: true, element: guard("/cantine", <CantinePage />) },
+                  { path: "commandes", element: guard("/cantine/commandes", <MesCommandesPage />) },
+                  { path: "preparation", element: guard("/cantine/preparation", <PreparationCommandesPage />) },
+                  { path: "catalogue", element: guard("/cantine/catalogue", <CatalogueAdminPage />) },
+                  { path: "plafonds", element: guard("/cantine/plafonds", <PlafondsPage />) },
                 ],
               },
               {

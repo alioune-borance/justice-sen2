@@ -5,16 +5,17 @@ import { useGetUsers } from "../../features/users/api/useUsers";
 import { useGetDetenus } from "../../features/detenus/api/useGetDetenu";
 import { Detenu } from "../../features/detenus/types/detenu";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
-import { Can } from "../../features/auth/components/Can";
-import { isJudicialRole, roleLabel } from "../../features/auth/config/rbac";
+import { ASSIGNMENT_MANAGEMENT, isJudicialRole, roleLabel } from "../../features/auth/config/rbac";
 import { getApiErrorMessages } from "../../shared/api/errorMessages";
 
 const INPUT = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm";
 
-// Affectations des acteurs judiciaires : créées par le SUPER_ADMIN uniquement (D25)
+// Affectations des acteurs judiciaires : créées et terminées par le SUPER_ADMIN ou l'ADMIN_JUDICIAIRE
+// (D25 révisé, jamais supprimées) ; chaque acteur judiciaire lit les siennes. L'ADMIN_JUDICIAIRE ne
+// reçoit que les comptes judiciaires et l'identité des détenus (filtré par le backend).
 export const AffectationsPage: React.FC = () => {
-  const { can } = usePermissions();
-  const canManage = can("judicial_assignments:create");
+  const { allows, can } = usePermissions();
+  const canManage = allows(ASSIGNMENT_MANAGEMENT);
   const { data: affectations = [], isLoading } = useGetAffectations();
   // Comptes judiciaires (greffier, juge d'instruction, procureur, avocat) : la fonction = le rôle
   const { data: users = [] } = useGetUsers(undefined, { enabled: canManage });
@@ -58,7 +59,7 @@ export const AffectationsPage: React.FC = () => {
         <h2 className="text-2xl font-bold text-slate-800">{canManage ? "Affectations judiciaires" : "Mes affectations"}</h2>
       </div>
 
-      <Can perm="judicial_assignments:create">
+      {canManage && (
         <form onSubmit={submit} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 space-y-3">
           <h3 className="font-semibold text-slate-800">Nouvelle affectation</h3>
           {errors.length > 0 && <p className="text-sm text-red-600">{errors.join(" ")}</p>}
@@ -83,7 +84,7 @@ export const AffectationsPage: React.FC = () => {
             </button>
           </div>
         </form>
-      </Can>
+      )}
 
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
         {isLoading ? (
@@ -114,9 +115,9 @@ export const AffectationsPage: React.FC = () => {
                     {!a.actif && " (terminée)"}
                   </td>
                   <td className="py-3">
-                    <Can perm="judicial_assignments:update" when={a.actif}>
+                    {canManage && can("judicial_assignments:update") && a.actif && (
                       <button onClick={() => finish(a.id)} className="text-sm text-red-600 hover:text-red-800">Terminer</button>
-                    </Can>
+                    )}
                   </td>
                 </tr>
               ))}

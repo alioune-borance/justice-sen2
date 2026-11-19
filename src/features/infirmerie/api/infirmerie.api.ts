@@ -1,5 +1,5 @@
 import { axiosInstance } from '../../../shared/api/axiosInstance';
-import { InfirmeriePatient, HealthRecord } from '../types/infirmerie';
+import { InfirmeriePatient, HealthRecord, HealthActivity } from '../types/infirmerie';
 
 const PRISONERS = 'prisoners';
 
@@ -7,6 +7,12 @@ const recordsUrl = (prisonerId: number) => `${PRISONERS}/${prisonerId}/health-re
 
 export const getInfirmeriePatients = async (): Promise<InfirmeriePatient[]> => {
   const { data } = await axiosInstance.get<InfirmeriePatient[]>(PRISONERS + '/?expand=health_records');
+  return data;
+};
+
+// Activité de l'infirmerie de la prison, sans donnée médicale (AP / SP)
+export const getHealthActivity = async (): Promise<HealthActivity[]> => {
+  const { data } = await axiosInstance.get<HealthActivity[]>('health-activity/');
   return data;
 };
 

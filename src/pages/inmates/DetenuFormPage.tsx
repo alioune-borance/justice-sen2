@@ -5,9 +5,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Save, X, Camera, RefreshCw, Fingerprint, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import countries from 'i18n-iso-countries';
 import fr from 'i18n-iso-countries/langs/fr.json';
-import { useGetDetenuById } from '../../features/detenus/api/useGetDetenu';
+import { useGetDetenuById, useCreateDetenu, useUpdateDetenu } from '../../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { getApiErrorMessages } from '../../shared/api/errorMessages';
 
 // Statut, date de libération, établissement : modifiés par la libération, le transfert ou les
 // décisions de justice, jamais par ce formulaire (lecture seule côté serveur)
@@ -33,6 +34,10 @@ export const DetenuFormPage: React.FC = () => {
     enabled: isEditMode
   });
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
+
+  const createMutation = useCreateDetenu();
+  const updateMutation = useUpdateDetenu();
+  const [submitErrors, setSubmitErrors] = useState<string[]>([]);
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [webcamActive, setWebcamActive] = useState(false);
@@ -194,12 +199,41 @@ export const DetenuFormPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Implement submit logic with mutation
-    console.log('Form submitted:', formData);
-    navigate('/detenus');
+    setSubmitErrors([]);
+
+    const payload = {
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      date_of_birth: formData.date_of_birth,
+      incarceration_date: new Date(formData.incarceration_date).toISOString(),
+      // Facultative : seulement les détenus condamnés ont une peine et donc une date de sortie connue
+      ...(formData.release_date ? { release_date: formData.release_date } : {}),
+      status: formData.status,
+      nationality: formData.nationality,
+      national_id: formData.national_id,
+      height: Number(formData.height),
+      weight: Number(formData.weight),
+      matricule_number: formData.matricule_number,
+      prison: Number(formData.prison),
+      sex: formData.sex,
+    };
+
+    try {
+      if (isEditMode && detenuId) {
+        await updateMutation.mutateAsync({ ...payload, id: detenuId });
+      } else {
+        await createMutation.mutateAsync(payload as any);
+      }
+      navigate('/detenus');
+    } catch (error) {
+      console.error('Erreur lors de la soumission:', error);
+      setSubmitErrors(getApiErrorMessages(error));
+    }
   };
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   const openFormDetenu = () => {
     navigate('/detenus/new');
@@ -236,6 +270,25 @@ export const DetenuFormPage: React.FC = () => {
         </h1>
         <div className="w-24"></div>
       </div>
+
+      {/* Erreurs de validation renvoyées par le serveur */}
+      {submitErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-800">
+              {isEditMode
+                ? 'La modification du détenu a échoué :'
+                : "L'ajout du détenu a échoué :"}
+            </p>
+            <ul className="mt-1 text-sm text-red-700 list-disc list-inside space-y-0.5">
+              {submitErrors.map((message, index) => (
+                <li key={index}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Main Form Card */}
       <form onSubmit={handleSubmit}>
@@ -500,7 +553,6 @@ export const DetenuFormPage: React.FC = () => {
                         disabled={isEditMode}
                         title={isEditMode ? SENSITIVE_FIELD_HINT : undefined}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                        required
                       />
                       {isEditMode && (
                         <p className="text-xs text-gray-500 mt-1">{SENSITIVE_FIELD_HINT}</p>
@@ -639,10 +691,20 @@ export const DetenuFormPage: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Save className="h-4 w-4" />
-                <span>{isEditMode ? 'Enregistrer les modifications' : 'Ajouter le détenu'}</span>
+                {isSubmitting ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Enregistrement...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    <span>{isEditMode ? 'Enregistrer les modifications' : 'Ajouter le détenu'}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
