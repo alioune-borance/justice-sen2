@@ -4,7 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, LogOut } from 'lucide-react';
 import { useCreateSortie, useGetSortieById, useUpdateSortie } from '../../features/sorties/api/useGetSortie';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, isMovable, prisonerStatusLabel } from '../../features/detenus/types/detenu';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
 
 export const SortieFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,8 @@ export const SortieFormPage: React.FC = () => {
 
   const { data: sortie, isLoading: isLoadingSortie } = useGetSortieById(sortieId || 0);
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
+  // Seuls les détenus actuellement dans la prison de l'utilisateur (pas l'historique ni les transferts entrants)
+  const { isMyPrison } = usePermissions();
 
   const createMutation = useCreateSortie();
   const updateMutation = useUpdateSortie();
@@ -24,7 +27,6 @@ export const SortieFormPage: React.FC = () => {
     date: '',
     due_return_date: '',
     purpose: '',
-    authorized_by: '',
     notes: '',
   });
 
@@ -36,7 +38,6 @@ export const SortieFormPage: React.FC = () => {
         date: sortie.date ? sortie.date.split('T')[0] : '',
         due_return_date: sortie.due_return_date ? sortie.due_return_date.split('T')[0] : '',
         purpose: sortie.purpose || '',
-        authorized_by: sortie.authorized_by || '',
         notes: sortie.notes || '',
       });
     }
@@ -56,10 +57,9 @@ export const SortieFormPage: React.FC = () => {
       due_return_date: new Date(formData.due_return_date).toISOString(),
       actual_return_date: new Date(formData.due_return_date).toISOString(),
       purpose: formData.purpose,
-      authorized_by: formData.authorized_by,
       notes: formData.notes,
       is_returned: false,
-      status: 'PENDING',
+      // status / authorized_by / prison : gérés par le serveur (validation SUPERVISEUR / ADMIN)
     };
 
     try {
@@ -144,9 +144,12 @@ export const SortieFormPage: React.FC = () => {
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Sélectionner un détenu</option>
-                      {detenusList.map((d: Detenu) => (
-                        <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
-                      ))}
+                      {/* Détenus en détention seulement (le détenu déjà choisi reste affiché en modification) */}
+                      {detenusList
+                        .filter((d: Detenu) => (isMovable(d) && isMyPrison(d.prison)) || String(d.id) === String(formData.prisoner))
+                        .map((d: Detenu) => (
+                          <option key={d.id} value={d.id}>{d.first_name} {d.last_name} ({prisonerStatusLabel(d.status)})</option>
+                        ))}
                     </select>
                     {isLoadingDetenus && <p className="text-xs text-gray-500 mt-1">Chargement des détenus...</p>}
                   </div>
@@ -208,18 +211,10 @@ export const SortieFormPage: React.FC = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Autorisée par *</label>
-                    <input
-                      type="text"
-                      name="authorized_by"
-                      value={formData.authorized_by}
-                      onChange={handleChange}
-                      required
-                      placeholder="Nom de l'autorité"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+                  <p className="text-xs text-gray-500">
+                    La sortie sera soumise à la validation d'un superviseur ou d'un administrateur
+                    de l'établissement.
+                  </p>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>

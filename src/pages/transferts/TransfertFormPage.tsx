@@ -5,8 +5,9 @@ import { ArrowLeft, Save, X, ArrowRightLeft } from 'lucide-react';
 import { useCreateTransfert, useGetTransfertById, useUpdateTransfert } from '../../features/transferts/api/useGetTransfert';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, isMovable, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { Prison } from '../../features/prisons/types/prison';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
 
 export const TransfertFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,9 @@ export const TransfertFormPage: React.FC = () => {
   const { data: transfert, isLoading: isLoadingTransfert } = useGetTransfertById(transfertId || 0);
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
+  // La liste des détenus contient aussi, en lecture seule, les anciens détenus et les transferts entrants
+  // validés : seuls ceux actuellement dans la prison de l'utilisateur peuvent faire l'objet d'un transfert
+  const { isMyPrison } = usePermissions();
 
   const createMutation = useCreateTransfert();
   const updateMutation = useUpdateTransfert();
@@ -27,7 +31,6 @@ export const TransfertFormPage: React.FC = () => {
     to_prison: '',
     transfer_date: '',
     purpose: '',
-    authorized_by: '',
     notes: '',
     priority: 'NORMAL',
   });
@@ -40,7 +43,6 @@ export const TransfertFormPage: React.FC = () => {
         to_prison: transfert.to_prison?.toString() || '',
         transfer_date: transfert.transfer_date ? transfert.transfer_date.split('T')[0] : '',
         purpose: transfert.purpose || '',
-        authorized_by: transfert.authorized_by || '',
         notes: transfert.notes || '',
         priority: transfert.priority || 'NORMAL',
       });
@@ -52,6 +54,16 @@ export const TransfertFormPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePrisonerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    const selectedDetenu = detenusList.find((d: Detenu) => d.id === Number(value));
+    setFormData(prev => ({
+      ...prev,
+      prisoner: value,
+      from_prison: selectedDetenu ? (selectedDetenu.prison?.toString() ?? '') : '',
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const payload = {
@@ -61,10 +73,9 @@ export const TransfertFormPage: React.FC = () => {
       transfer_date: new Date(formData.transfer_date).toISOString(),
       date: new Date(formData.transfer_date).toISOString(),
       purpose: formData.purpose,
-      authorized_by: formData.authorized_by,
       notes: formData.notes,
       priority: formData.priority,
-      status: 'PENDING',
+      // status / authorized_by : gérés par le serveur (validation par la prison source)
     };
 
     try {
@@ -139,20 +150,46 @@ export const TransfertFormPage: React.FC = () => {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-4">
 
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Détenu concerné *</label>
+                    <select
+                      name="prisoner"
+                      value={formData.prisoner}
+                      onChange={handlePrisonerChange}
+                      required
+                      disabled={isLoadingDetenus}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Sélectionner un détenu</option>
+                      {/* Détenus en détention seulement (le détenu déjà choisi reste affiché en modification) */}
+                      {detenusList
+                        .filter((d: Detenu) => (isMovable(d) && isMyPrison(d.prison)) || String(d.id) === String(formData.prisoner))
+                        .map((d: Detenu) => (
+                          <option key={d.id} value={d.id}>{d.first_name} {d.last_name} ({prisonerStatusLabel(d.status)})</option>
+                        ))}
+                    </select>
+                    {isLoadingDetenus && <p className="text-xs text-gray-500 mt-1">Chargement des détenus...</p>}
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Établissement de départ *</label>
                     <select
                       name="from_prison"
                       value={formData.from_prison}
                       onChange={handleChange}
                       required
-                      disabled={isLoadingPrisons}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-600 disabled:opacity-100 disabled:cursor-not-allowed"
                     >
-                      <option value="">Sélectionner un établissement</option>
+                      <option value="">
+                        {formData.prisoner ? "Prison actuelle introuvable" : "Sélectionnez d'abord un détenu"}
+                      </option>
                       {prisons.map((p: Prison) => (
                         <option key={p.id} value={p.id}>{p.name}{p.location ? ` - ${p.location}` : ''}</option>
                       ))}
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Défini automatiquement selon la prison actuelle du détenu.
+                    </p>
                   </div>
 
                   <div>
@@ -166,29 +203,11 @@ export const TransfertFormPage: React.FC = () => {
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Sélectionner un établissement</option>
-                      {prisons.map((p: Prison) => (
+                      {prisons.filter((p: Prison) => String(p.id) !== formData.from_prison).map((p: Prison) => (
                         <option key={p.id} value={p.id}>{p.name}{p.location ? ` - ${p.location}` : ''}</option>
                       ))}
                     </select>
                     {isLoadingPrisons && <p className="text-xs text-gray-500 mt-1">Chargement des établissements...</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Détenu concerné *</label>
-                    <select
-                      name="prisoner"
-                      value={formData.prisoner}
-                      onChange={handleChange}
-                      required
-                      disabled={isLoadingDetenus}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Sélectionner un détenu</option>
-                      {detenusList.map((d: Detenu) => (
-                        <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
-                      ))}
-                    </select>
-                    {isLoadingDetenus && <p className="text-xs text-gray-500 mt-1">Chargement des détenus...</p>}
                   </div>
                 </div>
               </div>
@@ -238,18 +257,10 @@ export const TransfertFormPage: React.FC = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Autorisé par *</label>
-                    <input
-                      type="text"
-                      name="authorized_by"
-                      value={formData.authorized_by}
-                      onChange={handleChange}
-                      required
-                      placeholder="Nom de l'autorité"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+                  <p className="text-xs text-gray-500">
+                    Le transfert sera soumis à la validation d'un superviseur ou d'un administrateur
+                    de l'établissement de départ.
+                  </p>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>

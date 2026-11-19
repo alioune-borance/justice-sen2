@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import { UpdateTransfertDto, Transfert } from '../types/transfert';
-import { addNewTransfert, getTransfertById, getTransferts, updateTransfert } from './transferts.api';
+import { addNewTransfert, decideTransfert, getTransfertById, getTransferts, TransfertAction, updateTransfert } from './transferts.api';
 
 type UpdateTransfertVariables = { id: number } & UpdateTransfertDto;
 
-export const useGetTransferts = () =>
+// enabled: false quand l'utilisateur n'a pas la permission de lecture (évite un 403 inutile)
+export const useGetTransferts = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: ["transferts"],
     queryFn: () => getTransferts(),
+    enabled: options?.enabled ?? true,
     staleTime: 30 * 60 * 1000, 
   });
 
@@ -56,6 +58,20 @@ export const useUpdateTransfert = (): UseMutationResult<
     },
     onError: (error: Error) => {
       console.error('Error updating transfert:', error);
+    },
+  });
+};
+export const useTransfertDecision = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, action, reason }: { id: number; action: TransfertAction; reason?: string }) =>
+      decideTransfert(id, action, reason),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['transferts'] });
+      queryClient.invalidateQueries({ queryKey: ['transfert', variables.id] });
+      // L'arrivée change la prison du détenu
+      queryClient.invalidateQueries({ queryKey: ['detenus'] });
     },
   });
 };

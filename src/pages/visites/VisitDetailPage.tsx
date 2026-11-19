@@ -6,6 +6,7 @@ import { useGetVisiteById, useGetVisitors } from '../../features/visites/api/use
 import { Visitor } from '../../features/visites/types/visitor';
 import { Detenu } from '../../features/detenus/types/detenu';
 import { useReactToPrint } from 'react-to-print';
+import { Can } from '../../features/auth/components/Can';
 
 export const VisiteDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -230,10 +231,12 @@ export const VisiteDetailPage: React.FC = () => {
               <Printer className="h-4 w-4" />
               Imprimer le rapport
             </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" 
-             onClick={() => navigate(`/visits/update/${visit!.id}`)}>
-              Modifier la visite
-            </button>
+            <Can perm="visits:update">
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+               onClick={() => navigate(`/visits/update/${visit!.id}`)}>
+                Modifier la visite
+              </button>
+            </Can>
           </div>
         </div>
       </div>

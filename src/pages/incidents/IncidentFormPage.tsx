@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, AlertTriangle } from 'lucide-react';
 import { useAddDisciplinaryRecord } from '../../features/incidents/api/useGetIncident';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { DisciplinaryRecord } from '../../features/incidents/types/incident';
 
 export const IncidentFormPage: React.FC = () => {
@@ -17,6 +17,7 @@ export const IncidentFormPage: React.FC = () => {
     infraction: '',
     description: '',
     date_of_infraction: new Date().toISOString().slice(0, 10),
+    sanction: '',
   });
   const [errors, setErrors] = useState<{ prisoner?: string } & Partial<DisciplinaryRecord>>({});
 
@@ -48,6 +49,8 @@ export const IncidentFormPage: React.FC = () => {
           infraction: record.infraction.trim(),
           description: record.description.trim(),
           date_of_infraction: record.date_of_infraction,
+          // Une sanction proposée part en validation (superviseur / administrateur)
+          sanction: record.sanction?.trim() || '',
         },
       });
       navigate('/incidents');
@@ -122,7 +125,7 @@ export const IncidentFormPage: React.FC = () => {
                     <span className="text-gray-500">Matricule</span>
                     <span className="font-medium">{selectedDetenu.matricule_number}</span>
                     <span className="text-gray-500">Statut</span>
-                    <span className="font-medium">{selectedDetenu.status}</span>
+                    <span className="font-medium">{prisonerStatusLabel(selectedDetenu.status)}</span>
                     <span className="text-gray-500">Incarcéré le</span>
                     <span className="font-medium">
                       {new Date(selectedDetenu.incarceration_date).toLocaleDateString('fr-FR')}
@@ -160,6 +163,23 @@ export const IncidentFormPage: React.FC = () => {
                   {errors.date_of_infraction && (
                     <p className="text-red-500 text-xs mt-1">{errors.date_of_infraction}</p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sanction proposée
+                  </label>
+                  <textarea
+                    name="sanction"
+                    value={record.sanction}
+                    onChange={handleRecordChange}
+                    rows={2}
+                    placeholder="Ex : 7 jours de cellule disciplinaire (facultatif)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    La sanction sera soumise à la validation d'un superviseur ou d'un administrateur.
+                  </p>
                 </div>
               </div>
 

@@ -13,8 +13,18 @@ import autoTable from 'jspdf-autotable';
 import { useNavigate } from 'react-router-dom';
 import { useGetInfirmeriePatients } from '../../features/infirmerie/api/useGetInfirmerie';
 import { InfirmeriePatient, HealthRecord } from '../../features/infirmerie/types/infirmerie';
+import { Can } from '../../features/auth/components/Can';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { InfirmerieActivitePage } from './InfirmerieActivitePage';
 
+// Personnel de santé : dossiers médicaux. AP / SP : activité de l'infirmerie, sans donnée médicale
+// (le backend ne leur ouvre jamais health_records, même en mode observation).
 export const InfirmeriePage: React.FC = () => {
+  const { can } = usePermissions();
+  return can('health_records:read') ? <InfirmerieMedicalPage /> : <InfirmerieActivitePage />;
+};
+
+const InfirmerieMedicalPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: allPatients = [], isLoading } = useGetInfirmeriePatients();
 
@@ -32,7 +42,7 @@ export const InfirmeriePage: React.FC = () => {
     const now = new Date();
     const thisWeek = patients.filter((p: InfirmeriePatient) =>
       p.health_records.some((r: HealthRecord) => {
-        const days = (now.getTime() - new Date(r.date_diagnosis).getTime()) / (1000 * 60 * 60 * 24);
+        const days = (now.getTime() - new Date(r.date_of_diagnosis).getTime()) / (1000 * 60 * 60 * 24);
         return days <= 7;
       })
     ).length;
@@ -47,7 +57,7 @@ export const InfirmeriePage: React.FC = () => {
       const name = `${p.first_name} ${p.last_name}`.toLowerCase();
       const matchesRecord = p.health_records.some(
         (r: HealthRecord) =>
-          r.condition_medical.toLowerCase().includes(q) ||
+          r.medical_condition.toLowerCase().includes(q) ||
           r.description.toLowerCase().includes(q)
       );
       return name.includes(q) || matchesRecord;
@@ -74,7 +84,7 @@ export const InfirmeriePage: React.FC = () => {
 
     const anciens = patients.filter((p: InfirmeriePatient) =>
       p.health_records.every((r: HealthRecord) => {
-        const days = (now.getTime() - new Date(r.date_diagnosis).getTime()) / (1000 * 60 * 60 * 24);
+        const days = (now.getTime() - new Date(r.date_of_diagnosis).getTime()) / (1000 * 60 * 60 * 24);
         return days > 30;
       })
     );
@@ -149,14 +159,14 @@ export const InfirmeriePage: React.FC = () => {
     const rows: (string | number)[][] = [];
     filtered.forEach(p => {
       const sorted = [...p.health_records].sort(
-        (a, b) => new Date(b.date_diagnosis).getTime() - new Date(a.date_diagnosis).getTime()
+        (a, b) => new Date(b.date_of_diagnosis).getTime() - new Date(a.date_of_diagnosis).getTime()
       );
       sorted.forEach((r, ri) => {
         rows.push([
           ri === 0 ? `${p.first_name} ${p.last_name}` : '',
           ri === 0 ? (p.matricule_number ?? '—') : '',
-          r.condition_medical,
-          new Date(r.date_diagnosis).toLocaleDateString('fr-FR'),
+          r.medical_condition,
+          new Date(r.date_of_diagnosis).toLocaleDateString('fr-FR'),
           r.description,
         ]);
       });
@@ -210,13 +220,15 @@ export const InfirmeriePage: React.FC = () => {
             </svg>
             Rapport PDF
           </button>
-          <button
-            onClick={() => navigate('/infirmerie/new')}
-            className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
-          >
-            <Stethoscope className="h-4 w-4" />
-            Nouveau dossier médical
-          </button>
+          <Can perm="health_records:create">
+            <button
+              onClick={() => navigate('/infirmerie/new')}
+              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
+            >
+              <Stethoscope className="h-4 w-4" />
+              Nouveau dossier médical
+            </button>
+          </Can>
         </div>
       </div>
 
@@ -271,7 +283,7 @@ export const InfirmeriePage: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((patient: InfirmeriePatient) => {
                   const sorted = [...patient.health_records].sort(
-                    (a, b) => new Date(b.date_diagnosis).getTime() - new Date(a.date_diagnosis).getTime()
+                    (a, b) => new Date(b.date_of_diagnosis).getTime() - new Date(a.date_of_diagnosis).getTime()
                   );
                   const latest = sorted[0];
                   return (
@@ -288,22 +300,24 @@ export const InfirmeriePage: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 pr-4 text-gray-600">
-                        <div className="font-medium text-gray-800">{latest.condition_medical}</div>
+                        <div className="font-medium text-gray-800">{latest.medical_condition}</div>
                         <div className="text-xs text-gray-400">
-                          {new Date(latest.date_diagnosis).toLocaleDateString('fr-FR')}
+                          {new Date(latest.date_of_diagnosis).toLocaleDateString('fr-FR')}
                         </div>
                       </td>
                       <td className="py-3 pr-4 text-gray-600 max-w-xs truncate" title={latest.description}>
                         {latest.description}
                       </td>
                       <td className="py-3">
-                        <button
-                          onClick={() => navigate(`/infirmerie/update/${patient.id}`)}
-                          className="p-1 text-gray-500 hover:text-gray-800"
-                          title="Modifier"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
+                        <Can perm="health_records:update">
+                          <button
+                            onClick={() => navigate(`/infirmerie/update/${patient.id}`)}
+                            className="p-1 text-gray-500 hover:text-gray-800"
+                            title="Modifier"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        </Can>
                       </td>
                     </tr>
                   );

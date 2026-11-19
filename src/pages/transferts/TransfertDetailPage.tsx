@@ -1,8 +1,12 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, Truck } from 'lucide-react';
-import { useGetTransfertById, useGetTransferts } from '../../features/transferts/api/useGetTransfert';
+import { ArrowLeft, User, Calendar, MapPin, Scale, Clock, Truck, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { useGetTransfertById, useGetTransferts, useTransfertDecision } from '../../features/transferts/api/useGetTransfert';
+import { TransfertAction } from '../../features/transferts/api/transferts.api';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { Can } from '../../features/auth/components/Can';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Prison } from '../../features/prisons/types/prison';
@@ -15,11 +19,20 @@ export const TransfertDetailPage: React.FC = () => {
 
 
   //const { data: transfert, isLoading, isError } = useGetTransfertById(transfertId);
-  const { data: transferts = [] } = useGetTransferts(); 
-
-  console.log(transferts)
+  const { data: transferts = [] } = useGetTransferts();
   const transfert = transferts.find(t => t.id === transfertId);
-  console.log(transfert)
+  const { isMyPrison } = usePermissions();
+  const decision = useTransfertDecision();
+  const isPending = transfert?.status === 'PENDING';
+
+  const decide = (action: TransfertAction) => {
+    if (!transfert) return;
+    const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
+    if (reason === null) return; // annulé
+    // L'arrivée change l'établissement du détenu : confirmation
+    if (action === 'complete' && !window.confirm(`Confirmer l'arrivée de ${getDetenuName(transfert.prisoner)} dans votre établissement ?`)) return;
+    decision.mutate({ id: transfert.id, action, reason: reason || undefined });
+  };
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
 
@@ -84,6 +97,73 @@ export const TransfertDetailPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-slate-800">Détail du transfert</h1>
         <div className="w-24"></div>
       </div>
+
+      {/* Validation attendue : bandeau en tête de page, visible sans défiler (prison source, SP ou AP) */}
+      {transfert && (
+        <Can perm="transfers:validate" when={isPending && isMyPrison(transfert.from_prison)}>
+          <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-7 w-7 text-amber-600 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-amber-900">Ce transfert attend votre validation</p>
+                <p className="text-sm text-amber-800">
+                  {getDetenuName(transfert.prisoner)} : {getTransfertFrom(transfert.from_prison)} vers {getTransfertTo(transfert.to_prison)}
+                </p>
+                {decision.isError && (
+                  <p className="text-sm text-red-700 mt-1">{getApiErrorMessage(decision.error)}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => decide('reject')}
+                disabled={decision.isPending}
+                className="px-5 py-3 border-2 border-red-500 text-red-700 font-semibold rounded-lg hover:bg-red-50 disabled:opacity-50 flex items-center gap-2"
+              >
+                <XCircle className="h-5 w-5" />
+                Refuser
+              </button>
+              <button
+                onClick={() => decide('approve')}
+                disabled={decision.isPending}
+                className="px-6 py-3 bg-green-600 text-white text-base font-semibold rounded-lg shadow hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                <CheckCircle className="h-5 w-5" />
+                Valider le transfert
+              </button>
+            </div>
+          </div>
+        </Can>
+      )}
+
+      {/* Arrivée attendue : bandeau en tête de page (prison de destination : AG, SP ou AP, D21) */}
+      {transfert && (
+        <Can perm="transfers:complete" when={transfert.status === 'APPROVED' && isMyPrison(transfert.to_prison)}>
+          <div className="bg-sky-50 border-2 border-sky-400 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <Truck className="h-7 w-7 text-sky-600 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-sky-900">Détenu attendu dans votre établissement</p>
+                <p className="text-sm text-sky-800">
+                  {getDetenuName(transfert.prisoner)} : transfert validé depuis {getTransfertFrom(transfert.from_prison)}.
+                  Réceptionnez-le à son arrivée.
+                </p>
+                {decision.isError && (
+                  <p className="text-sm text-red-700 mt-1">{getApiErrorMessage(decision.error)}</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => decide('complete')}
+              disabled={decision.isPending}
+              className="px-6 py-3 bg-sky-600 text-white text-base font-semibold rounded-lg shadow hover:bg-sky-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              <Truck className="h-5 w-5" />
+              Réceptionner le détenu
+            </button>
+          </div>
+        </Can>
+      )}
 
       {/* Main Card */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200">
@@ -248,16 +328,50 @@ export const TransfertDetailPage: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="p-6 border-t border-gray-200">
+          {decision.isError && (
+            <p className="text-sm text-red-600 mb-3 text-right">{getApiErrorMessage(decision.error)}</p>
+          )}
           <div className="flex justify-end space-x-3">
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
               Imprimer l'ordre de transfert
             </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              Annuler le transfert
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Modifier le transfert
-            </button>
+            {/* Validation par la prison source (SUPERVISEUR ou ADMIN), D6 */}
+            <Can perm="transfers:validate" when={isPending && isMyPrison(transfert!.from_prison)}>
+              <button
+                onClick={() => decide('reject')}
+                disabled={decision.isPending}
+                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 disabled:opacity-50"
+              >
+                Refuser
+              </button>
+              <button
+                onClick={() => decide('approve')}
+                disabled={decision.isPending}
+                className="px-5 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Valider le transfert
+              </button>
+            </Can>
+            {/* Arrivée signalée par la prison de destination (D21) */}
+            <Can perm="transfers:complete" when={transfert!.status === 'APPROVED' && isMyPrison(transfert!.to_prison)}>
+              <button
+                onClick={() => decide('complete')}
+                disabled={decision.isPending}
+                className="px-5 py-2 bg-sky-600 text-white font-semibold rounded-lg shadow hover:bg-sky-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                <Truck className="h-4 w-4" />
+                Réceptionner le détenu
+              </button>
+            </Can>
+            <Can perm="transfers:update" when={isPending && isMyPrison(transfert!.from_prison)}>
+              <button
+                onClick={() => navigate(`/transfers/update/${transfert!.id}`)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Modifier le transfert
+              </button>
+            </Can>
           </div>
         </div>
       </div>

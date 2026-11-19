@@ -1,11 +1,18 @@
 // features/detenus/pages/InmateFormPage.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { IN_CUSTODY_STATUSES, PRISONER_STATUSES } from '../../features/detenus/types/detenu';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Save, X, Camera, RefreshCw, Fingerprint, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import countries from 'i18n-iso-countries';
 import fr from 'i18n-iso-countries/langs/fr.json';
-import { useGetDetenuById } from '../../features/detenus/api/useGetDetenu';
+import { useGetDetenuById, useCreateDetenu, useUpdateDetenu } from '../../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../../features/prisons/api/useGetPrison';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { getApiErrorMessages } from '../../shared/api/errorMessages';
+
+// Statut, date de libération, établissement : modifiés par la libération, le transfert ou les
+// décisions de justice, jamais par ce formulaire (lecture seule côté serveur)
+const SENSITIVE_FIELD_HINT = 'Modifiable uniquement par une libération, un transfert ou une décision de justice.';
 
 countries.registerLocale(fr);
 const countryOptions = Object.entries(countries.getNames('fr', { select: 'official' }))
@@ -27,6 +34,10 @@ export const DetenuFormPage: React.FC = () => {
     enabled: isEditMode
   });
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons();
+
+  const createMutation = useCreateDetenu();
+  const updateMutation = useUpdateDetenu();
+  const [submitErrors, setSubmitErrors] = useState<string[]>([]);
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [webcamActive, setWebcamActive] = useState(false);
@@ -168,10 +179,17 @@ export const DetenuFormPage: React.FC = () => {
     }
   }, [isEditMode, detenu]);
 
-  const statusDetenu = [
-    'Condamné',
-    'Prévenu'
-  ]
+  // Statuts proposés à l'écrou : détenus en détention (la libération passe par l'action dédiée)
+  const statusDetenu = PRISONER_STATUSES.filter((st) => IN_CUSTODY_STATUSES.includes(st.value))
+
+  // Rôles prison : le détenu est créé dans leur établissement (imposé par le serveur)
+  const { user } = usePermissions();
+  const forcedPrison = user?.rbac_enforced && user.scope.type === 'prison' ? user.prison : null;
+  useEffect(() => {
+    if (!isEditMode && forcedPrison) {
+      setFormData(prev => ({ ...prev, prison: forcedPrison.id.toString() }));
+    }
+  }, [isEditMode, forcedPrison?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -181,12 +199,41 @@ export const DetenuFormPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Implement submit logic with mutation
-    console.log('Form submitted:', formData);
-    navigate('/detenus');
+    setSubmitErrors([]);
+
+    const payload = {
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      date_of_birth: formData.date_of_birth,
+      incarceration_date: new Date(formData.incarceration_date).toISOString(),
+      // Facultative : seulement les détenus condamnés ont une peine et donc une date de sortie connue
+      ...(formData.release_date ? { release_date: formData.release_date } : {}),
+      status: formData.status,
+      nationality: formData.nationality,
+      national_id: formData.national_id,
+      height: Number(formData.height),
+      weight: Number(formData.weight),
+      matricule_number: formData.matricule_number,
+      prison: Number(formData.prison),
+      sex: formData.sex,
+    };
+
+    try {
+      if (isEditMode && detenuId) {
+        await updateMutation.mutateAsync({ ...payload, id: detenuId });
+      } else {
+        await createMutation.mutateAsync(payload as any);
+      }
+      navigate('/detenus');
+    } catch (error) {
+      console.error('Erreur lors de la soumission:', error);
+      setSubmitErrors(getApiErrorMessages(error));
+    }
   };
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   const openFormDetenu = () => {
     navigate('/detenus/new');
@@ -223,6 +270,25 @@ export const DetenuFormPage: React.FC = () => {
         </h1>
         <div className="w-24"></div>
       </div>
+
+      {/* Erreurs de validation renvoyées par le serveur */}
+      {submitErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-800">
+              {isEditMode
+                ? 'La modification du détenu a échoué :'
+                : "L'ajout du détenu a échoué :"}
+            </p>
+            <ul className="mt-1 text-sm text-red-700 list-disc list-inside space-y-0.5">
+              {submitErrors.map((message, index) => (
+                <li key={index}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Main Form Card */}
       <form onSubmit={handleSubmit}>
@@ -424,11 +490,12 @@ export const DetenuFormPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Statut du détenu *
                       </label>
-                      <select 
-                        name="status" 
+                      <select
+                        name="status"
                         value={formData.status}
                         onChange={handleChange}
-                        disabled={isLoadingPrisons}
+                        disabled={isLoadingPrisons || isEditMode}
+                        title={isEditMode ? SENSITIVE_FIELD_HINT : undefined}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         required
                       >
@@ -436,9 +503,9 @@ export const DetenuFormPage: React.FC = () => {
                         {isLoadingPrisons ? (
                           <option value="" disabled>Chargement des statuts...</option>
                         ) : (
-                          statusDetenu.map((s: string) => (
-                            <option key={s} value={s}>
-                              { s }
+                          statusDetenu.map((st) => (
+                            <option key={st.value} value={st.value}>
+                              {st.label}
                             </option>
                           ))
                         )}
@@ -478,25 +545,30 @@ export const DetenuFormPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Date de libération prévue (si inculpé)
                       </label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         name="release_date"
                         value={formData.release_date}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
+                        disabled={isEditMode}
+                        title={isEditMode ? SENSITIVE_FIELD_HINT : undefined}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       />
+                      {isEditMode && (
+                        <p className="text-xs text-gray-500 mt-1">{SENSITIVE_FIELD_HINT}</p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Établissement *
                       </label>
-                      <select 
-                        name="prison" 
+                      <select
+                        name="prison"
                         value={formData.prison}
                         onChange={handleChange}
-                        disabled={isLoadingPrisons}
+                        // Changement d'établissement : par un transfert ; agents : leur établissement
+                        disabled={isLoadingPrisons || isEditMode || !!forcedPrison}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         required
                       >
@@ -619,10 +691,20 @@ export const DetenuFormPage: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Save className="h-4 w-4" />
-                <span>{isEditMode ? 'Enregistrer les modifications' : 'Ajouter le détenu'}</span>
+                {isSubmitting ? (
+                  <>
+                    <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Enregistrement...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    <span>{isEditMode ? 'Enregistrer les modifications' : 'Ajouter le détenu'}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

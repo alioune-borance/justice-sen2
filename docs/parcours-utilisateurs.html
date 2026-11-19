@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SGPN — Fonctionnalités et parcours utilisateurs</title>
+<style>
+  :root {
+    --ink: #1e293b; --muted: #64748b; --line: #e2e8f0; --bg: #f8fafc; --card: #fff;
+    --admin: #475569; --prison: #2563eb; --sante: #0d9488; --proche: #16a34a;
+    --national: #d97706; --judiciaire: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  header { background: #1e293b; color: #fff; padding: 28px 32px; }
+  header h1 { margin: 0 0 6px; font-size: 26px; }
+  header p { margin: 0; color: #cbd5e1; max-width: 900px; }
+  .flag { display: inline-flex; width: 36px; height: 24px; border-radius: 3px; overflow: hidden; vertical-align: -4px; margin-right: 10px; }
+  .flag i { flex: 1; } .flag i:nth-child(1){background:#16a34a} .flag i:nth-child(2){background:#facc15} .flag i:nth-child(3){background:#dc2626}
+  nav.toc { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid var(--line); padding: 10px 32px; display: flex; gap: 18px; flex-wrap: wrap; }
+  nav.toc a { color: var(--prison); text-decoration: none; font-weight: 600; font-size: 14px; }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 32px 64px; }
+  section { margin-top: 40px; }
+  h2 { font-size: 22px; margin: 0 0 4px; }
+  h2 + .lead { color: var(--muted); margin: 0 0 18px; }
+  h3 { margin: 0 0 6px; font-size: 17px; }
+  code, .path { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; background: #f1f5f9; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: #0f172a; white-space: nowrap; }
+  .note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; color: #78350f; font-size: 14px; }
+
+  /* Familles de rôles */
+  .families { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .family { background: var(--card); border: 1px solid var(--line); border-top: 5px solid var(--c); border-radius: 10px; padding: 14px 16px; }
+  .family h3 { color: var(--c); }
+  .family ul { margin: 6px 0 0; padding-left: 18px; }
+  .family li { margin: 3px 0; }
+  .family small { color: var(--muted); }
+
+  /* Chips */
+  .chip { display: inline-block; font-size: 12px; font-weight: 700; color: #fff; background: var(--c); border-radius: 999px; padding: 2px 9px; margin: 1px 2px; white-space: nowrap; }
+  .status { display: inline-block; font: 600 11.5px ui-monospace, Consolas, monospace; background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; border-radius: 4px; padding: 1px 6px; }
+
+  /* Sélecteur de rôle */
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .picker button { border: 2px solid var(--c); background: #fff; color: var(--c); font-weight: 700; border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 13.5px; }
+  .picker button.on { background: var(--c); color: #fff; }
+  .profile { background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--c); border-radius: 10px; padding: 18px 22px; display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; }
+  .profile h3 { font-size: 20px; color: var(--c); }
+  .profile dl { margin: 10px 0 0; display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; font-size: 14px; }
+  .profile dt { color: var(--muted); }
+  .profile dd { margin: 0; }
+  .menu { background: #1e293b; color: #fff; border-radius: 8px; padding: 10px 0; }
+  .menu .head { padding: 4px 16px 10px; font-weight: 700; color: #cbd5e1; font-size: 13px; border-bottom: 1px solid #334155; margin-bottom: 6px; }
+  .menu .item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 16px; font-size: 14px; }
+  .menu .item span:last-child { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: #94a3b8; }
+  .menu .bell { padding: 8px 16px 2px; font-size: 12.5px; color: #94a3b8; border-top: 1px solid #334155; margin-top: 6px; }
+  .flows-links { margin-top: 12px; font-size: 14px; }
+  .flows-links a { color: var(--prison); }
+
+  /* Matrice */
+  .matrix-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+  table.matrix { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  .matrix th, .matrix td { border-bottom: 1px solid var(--line); padding: 7px 8px; text-align: center; }
+  .matrix thead th { position: sticky; top: 0; background: #fff; font-size: 12px; vertical-align: bottom; }
+  .matrix thead th.rc { color: var(--c); border-bottom: 3px solid var(--c); min-width: 44px; }
+  .matrix td:first-child, .matrix th:first-child { text-align: left; white-space: nowrap; }
+  .matrix td.grp { background: #f1f5f9; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 11.5px; letter-spacing: .04em; }
+  .matrix tr.hl td { background: #f0f9ff; }
+  .matrix col.hl { background: #fef9c3; }
+  .lvl { display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 6px; font-weight: 800; font-size: 12px; cursor: help; }
+  .lvl.g { background: #1d4ed8; color: #fff; }
+  .lvl.v { background: #f59e0b; color: #fff; }
+  .lvl.c { background: #dbeafe; color: #1e40af; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0 14px; font-size: 13.5px; color: var(--muted); align-items: center; }
+
+  /* Parcours */
+  .flow { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 22px; }
+  .flow > p { margin: 2px 0 14px; color: var(--muted); font-size: 14px; }
+  .steps { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; row-gap: 14px; }
+  .step { position: relative; width: 210px; background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; }
+  .step .n { position: absolute; top: -12px; left: -10px; width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #fff; font-weight: 800; font-size: 12px; text-align: center; line-height: 24px; }
+  .step b { display: block; margin: 4px 0 4px; }
+  .step .path { display: inline-block; margin-top: 4px; }
+  .step .st { margin-top: 6px; }
+  .step small { display: block; color: var(--muted); margin-top: 5px; line-height: 1.35; }
+  .arrow { align-self: center; width: 30px; text-align: center; color: #94a3b8; font-size: 22px; flex: 0 0 30px; }
+  .branch { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  .branch .step { width: 230px; }
+  .branch .lbl { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: -4px; }
+  .aside { margin-top: 12px; font-size: 13.5px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 8px 12px; }
+
+  /* Circuit des demandes de visite (schéma) */
+  .lanes { display: grid; grid-template-columns: 130px 1fr; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+  .lanes .lane-h { background: var(--c); color: #fff; font-weight: 700; padding: 12px; font-size: 13px; display: flex; align-items: center; }
+  .lanes .lane-b { border-bottom: 1px solid var(--line); padding: 10px 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13.5px; min-height: 56px; }
+  .box { border: 1px solid var(--line); background: #f8fafc; border-radius: 6px; padding: 5px 10px; }
+
+  .publics { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .publics div { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); margin-top: 48px; padding-top: 14px; }
+  @media (max-width: 860px) { .profile { grid-template-columns: 1fr; } main, header, nav.toc { padding-left: 16px; padding-right: 16px; } }
+  @media print { nav.toc { display: none; } .flow, .family, .profile { break-inside: avoid; } body { background: #fff; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="flag"><i></i><i></i><i></i></span>SGPN — Fonctionnalités et parcours utilisateurs</h1>
+  <p>Système de gestion pénitentiaire du Sénégal. Ce document présente les profils d'utilisateurs, les écrans de chacun
+     et les principaux circuits (visites, décisions de justice, cantine, transferts…), avec les chemins d'accès dans l'application.</p>
+</header>
+
+<nav class="toc">
+  <a href="#profils">1. Profils</a>
+  <a href="#par-role">2. Vue par rôle</a>
+  <a href="#matrice">3. Qui accède à quoi</a>
+  <a href="#parcours">4. Parcours</a>
+  <a href="#acces">5. Accès et compte</a>
+</nav>
+
+<main>
+
+<!-- ─────────────────────────────── 1. Profils ─────────────────────────────── -->
+<section id="profils">
+  <h2>1. Les profils d'utilisateurs</h2>
+  <p class="lead">13 rôles, regroupés en six familles. Chaque compte a un seul rôle, attribué à sa création.</p>
+  <div class="families" id="families"></div>
+</section>
+
+<!-- ─────────────────────────────── 2. Vue par rôle ─────────────────────────────── -->
+<section id="par-role">
+  <h2>2. Ce que voit chaque rôle</h2>
+  <p class="lead">Choisissez un rôle : écran d'accueil, menu latéral tel qu'il s'affiche et parcours auxquels il participe.</p>
+  <div class="picker" id="picker"></div>
+  <div id="profile"></div>
+</section>
+
+<!-- ─────────────────────────────── 3. Matrice ─────────────────────────────── -->
+<section id="matrice">
+  <h2>3. Qui accède à quoi</h2>
+  <p class="lead">Écrans du menu (lignes) par rôle (colonnes). Survolez une case pour le détail. Cliquez sur un rôle pour surligner sa colonne.</p>
+  <div class="legend">
+    <span><span class="lvl g">G</span> Gère (crée, modifie)</span>
+    <span><span class="lvl v">V</span> Décide, valide ou contrôle</span>
+    <span><span class="lvl c">C</span> Consulte</span>
+    <span>Case vide : écran absent du menu</span>
+  </div>
+  <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+</section>
+
+<!-- ─────────────────────────────── 4. Parcours ─────────────────────────────── -->
+<section id="parcours">
+  <h2>4. Les parcours</h2>
+  <p class="lead">Chaque étape indique qui agit, l'écran utilisé et, le cas échéant, le statut obtenu.</p>
+
+  <div class="flow" id="schema-visites" style="--c:var(--judiciaire)">
+    <h3>Vue d'ensemble : circuit des demandes de visite</h3>
+    <p>Le circuit dépend du statut du détenu : <b>prévenu ou accusé</b> → circuit judiciaire en deux étapes ; <b>condamné</b> → circuit pénitentiaire en une étape.</p>
+    <div class="lanes">
+      <div class="lane-h" style="--c:var(--proche)">Proche</div>
+      <div class="lane-b"><span class="box">Dépose la demande<br><code>/mes-demandes/new</code></span> → <span class="status">SOUMISE</span> <span style="margin-left:auto" class="box">Complète les pièces si <span class="status">INCOMPLETE</span></span> <span class="box">Télécharge le permis<br><code>/permis</code></span></div>
+      <div class="lane-h" style="--c:var(--judiciaire)">Greffier</div>
+      <div class="lane-b"><i>Circuit judiciaire, étape 1</i> · <span class="box">Prend en charge <span class="status">EN_VERIFICATION</span></span> → <span class="box">Vérifie pièce par pièce</span> → <span class="box">Transmet <span class="status">TRANSMISE</span></span> ou <span class="box">Refuse <span class="status">REFUSEE</span></span></div>
+      <div class="lane-h" style="--c:var(--judiciaire)">Juge d'instruction / Procureur</div>
+      <div class="lane-b"><i>Circuit judiciaire, étape 2</i> · juge si le détenu est prévenu, procureur s'il est accusé · <span class="box">Valide <span class="status">VALIDEE</span> → permis émis</span> ou <span class="box">Refuse <span class="status">REFUSEE</span></span></div>
+      <div class="lane-h" style="--c:var(--prison)">Admin. / Superviseur de prison</div>
+      <div class="lane-b"><i>Circuit pénitentiaire (condamné)</i> · <span class="box">Vérifie</span> → <span class="box">Valide <span class="status">VALIDEE</span> → permis émis</span> ou <span class="box">Refuse</span> · peut aussi révoquer un permis</div>
+      <div class="lane-h" style="--c:var(--prison)">Agent pénitentiaire</div>
+      <div class="lane-b" style="border-bottom:0"><span class="box">Le jour de la visite : contrôle du permis (QR, numéro ou code)<br><code>/verification-permis</code></span> → résultat <span class="status">VALIDE</span> <span class="status">PAS_ENCORE_VALIDE</span> <span class="status">EXPIRE</span> <span class="status">REVOQUE</span> <span class="status">INTROUVABLE</span></div>
+    </div>
+  </div>
+
+  <div id="flows"></div>
+</section>
+
+<!-- ─────────────────────────────── 5. Accès ─────────────────────────────── -->
+<section id="acces">
+  <h2>5. Accès, compte et notifications</h2>
+  <p class="lead">Écrans hors menu, communs à tous.</p>
+  <div class="publics">
+    <div><b>Connexion</b> · <code>/login</code><br>Identifiant et mot de passe. Après connexion, chaque rôle arrive sur son propre accueil (voir section 2).</div>
+    <div><b>Inscription d'un proche</b> · <code>/inscription</code><br>Seul écran public avec la connexion. Le compte reste en attente jusqu'à la validation par la prison.</div>
+    <div><b>Statut du compte</b> · <code>/compte</code><br>Affiché si le compte est en attente, refusé, désactivé ou sans rôle. Le proche y suit sa demande et dépose ses pièces.</div>
+    <div><b>Notifications</b> · cloche en haut de l'écran, <code>/notifications</code><br>Ouvertes à tous les rôles ; chacun ne voit que les siennes. Un clic mène à l'objet concerné.</div>
+    <div><b>Accès refusé</b> · <code>/403</code><br>Affiché quand on ouvre l'adresse d'un écran non autorisé. Une action refusée affiche un bandeau, sans déconnexion.</div>
+    <div><b>Session</b><br>La session se renouvelle seule. À son expiration, retour à <code>/login</code> avec le message « session expirée ». La déconnexion vaut pour tous les onglets.</div>
+  </div>
+  <p class="note" style="margin-top:18px">
+    <b>À savoir.</b> Le menu et les écrans sont adaptés au rôle pour la lisibilité, mais c'est le serveur qui contrôle les données et les actions :
+    chaque utilisateur ne reçoit que les détenus de son périmètre (sa prison, ses détenus liés ou ses affectations).
+    Tant que le serveur fonctionne en <b>mode observation</b> (contrôle des droits non encore appliqué), le super administrateur et les rôles de prison
+    peuvent voir quelques écrans de plus que ceux décrits ici, ainsi que les écrans maquettes (Sécurité, Paramètres, Grâces, Réinsertion, Rapports).
+  </p>
+</section>
+
+<footer>
+  Établi à partir du code de l'application (branche V3) et de la politique d'accès du serveur, le 18/11/2026.
+  Les écrans maquettes (Sécurité, Paramètres, Grâces présidentielles, Réinsertion, Rapports) ne sont pas encore reliés à des données.
+</footer>
+</main>
+
+<script>
+// ── Données ──────────────────────────────────────────────────────────────────────────────────
+const FAMILIES = {
+  admin:      { label: "Administration", color: "var(--admin)",      desc: "Paramétrage national" },
+  prison:     { label: "Établissement",  color: "var(--prison)",     desc: "Rattachés à une prison" },
+  sante:      { label: "Santé",          color: "var(--sante)",      desc: "Rattaché à une prison, secret médical" },
+  judiciaire: { label: "Judiciaire",     color: "var(--judiciaire)", desc: "Détenus de leurs affectations" },
+  national:   { label: "Ministères",     color: "var(--national)",   desc: "Statistiques nationales, lecture seule" },
+  proche:     { label: "Famille",        color: "var(--proche)",     desc: "Détenus auxquels le proche est lié" },
+};
+
+const ROLES = [
+  { id: "SA",  code: "SUPER_ADMIN",         label: "Super administrateur",    fam: "admin",      scope: "National",
+    home: "Tableau de bord", homePath: "/", homeDesc: "Tableau de bord de l'établissement.",
+    role: "Crée les établissements et tous les comptes (y compris l'administrateur judiciaire), consulte les statistiques des deux ministères." },
+  { id: "ADJ", code: "ADMIN_JUDICIAIRE",    label: "Administrateur judiciaire", fam: "judiciaire", scope: "National",
+    home: "Affectations judiciaires", homePath: "/affectations", homeDesc: "Redirigé directement vers les affectations.",
+    role: "Affecte les détenus (et leur dossier) aux greffiers, juges, procureurs et avocats ; met fin aux affectations." },
+  { id: "AP",  code: "ADMIN_PRISON",        label: "Administrateur de prison", fam: "prison",    scope: "Sa prison",
+    home: "Tableau de bord", homePath: "/", homeDesc: "Tableau de bord de l'établissement.",
+    role: "Dirige la prison : détenus, visites, transferts, demandes de visite (condamnés), cantine, comptes du personnel, validation des proches." },
+  { id: "SP",  code: "SUPERVISEUR_PRISON",  label: "Superviseur de prison",   fam: "prison",     scope: "Sa prison",
+    home: "Tableau de bord", homePath: "/", homeDesc: "Tableau de bord de l'établissement.",
+    role: "Supervise et valide : transferts, sorties, sanctions, demandes de visite (condamnés), proches, effets des décisions de justice." },
+  { id: "AG",  code: "AGENT_PENITENTIAIRE", label: "Agent pénitentiaire",     fam: "prison",     scope: "Sa prison",
+    home: "Tableau de bord", homePath: "/", homeDesc: "Tableau de bord de l'établissement.",
+    role: "Saisie du quotidien : détenus, visites, transferts, incidents ; contrôle les permis de visite à l'entrée." },
+  { id: "PS",  code: "PERSONNEL_SANTE",     label: "Personnel de santé",      fam: "sante",      scope: "Sa prison",
+    home: "Infirmerie", homePath: "/infirmerie", homeDesc: "Redirigé directement vers l'infirmerie, son seul écran.",
+    role: "Tient les dossiers médicaux des détenus. Seul rôle à voir les données médicales." },
+  { id: "GR",  code: "GREFFIER",            label: "Greffier",                fam: "judiciaire", scope: "Ses affectations",
+    home: "Mes détenus", homePath: "/", homeDesc: "Ses détenus affectés et raccourcis.",
+    role: "Instruit les demandes de visite (étape 1) et seul saisit et corrige les décisions de justice." },
+  { id: "JI",  code: "JUGE_INSTRUCTION",    label: "Juge d'instruction",      fam: "judiciaire", scope: "Ses affectations",
+    home: "Mes détenus", homePath: "/", homeDesc: "Ses détenus affectés et raccourcis.",
+    role: "Décide les demandes de visite transmises pour les détenus prévenus." },
+  { id: "PRO", code: "PROCUREUR",           label: "Procureur",               fam: "judiciaire", scope: "Ses affectations",
+    home: "Mes détenus", homePath: "/", homeDesc: "Ses détenus affectés et raccourcis.",
+    role: "Décide les demandes de visite transmises pour les détenus accusés." },
+  { id: "AV",  code: "AVOCAT",              label: "Avocat",                  fam: "judiciaire", scope: "Ses affectations",
+    home: "Mes détenus", homePath: "/", homeDesc: "Ses détenus affectés et raccourcis.",
+    role: "Consulte les décisions et affectations de ses clients (lecture seule)." },
+  { id: "MJ",  code: "REP_MIN_JUSTICE",     label: "Ministère de la Justice", fam: "national",   scope: "National",
+    home: "Vue nationale", homePath: "/", homeDesc: "Tableau de bord national Justice (identique à /statistiques/justice).",
+    role: "Suit les indicateurs nationaux Justice, filtrés par prison et par période." },
+  { id: "MI",  code: "REP_MIN_INTERIEUR",   label: "Ministère de l'Intérieur", fam: "national",  scope: "National",
+    home: "Vue nationale", homePath: "/", homeDesc: "Tableau de bord national Intérieur (identique à /statistiques/interieur).",
+    role: "Suit les indicateurs nationaux Intérieur, filtrés par prison et par période." },
+  { id: "PR",  code: "PROCHE_REFERENT",     label: "Proche référent",         fam: "proche",     scope: "Ses détenus liés",
+    home: "Mes détenus", homePath: "/", homeDesc: "Ses détenus et raccourcis.",
+    role: "Demande des visites, approvisionne le compte du détenu par Wave / Orange Money, commande à la cantine, suit les décisions." },
+];
+
+// Écrans du menu : chemin, libellé, groupe, accès par rôle (g = gère, v = décide/valide/contrôle, c = consulte)
+const SCREENS = [
+  { grp: "Détenus et vie carcérale" },
+  { path: "/detenus", label: "Gestion des détenus", acc: {
+      SA: ["g", "Tous les détenus, création, modification, levée d'écrou"],
+      AP: ["g", "Détenus de sa prison ; applique l'effet des décisions de justice"],
+      SP: ["v", "Consulte ; valide la levée d'écrou et applique l'effet des décisions de justice"],
+      AG: ["g", "Création et modification des fiches de sa prison"] } },
+  { path: "/visits", label: "Visites", acc: {
+      AP: ["g", "Enregistre et modifie les visites"], SP: ["c", "Consulte les visites"], AG: ["g", "Enregistre les visites"] } },
+  { path: "/transfers", label: "Transferts et sorties", acc: {
+      AP: ["g", "Crée, valide (prison d'origine), réceptionne (prison d'arrivée)"],
+      SP: ["v", "Valide ou rejette, réceptionne"], AG: ["g", "Crée les transferts et sorties, réceptionne"] } },
+  { path: "/incidents", label: "Incidents", acc: {
+      SA: ["g", "Tous les incidents"], AP: ["g", "Saisit et décide les sanctions"],
+      SP: ["v", "Décide les sanctions"], AG: ["g", "Saisit les incidents"] } },
+  { path: "/infirmerie", label: "Infirmerie", acc: {
+      PS: ["g", "Dossiers médicaux complets"],
+      AP: ["c", "Activité de l'infirmerie : détenus suivis et dates, sans pathologie"],
+      SP: ["c", "Activité de l'infirmerie : détenus suivis et dates, sans pathologie"] } },
+  { grp: "Visites des proches" },
+  { path: "/mes-demandes", label: "Mes demandes de visite", acc: {
+      PR: ["g", "Dépose, suit et complète ses demandes"] } },
+  { path: "/demandes", label: "Demandes de visite", acc: {
+      GR: ["v", "Étape 1 du circuit judiciaire : vérifie, transmet ou refuse"],
+      JI: ["v", "Étape 2 : décide pour les détenus prévenus"],
+      PRO: ["v", "Étape 2 : décide pour les détenus accusés"],
+      AP: ["v", "Circuit pénitentiaire (condamnés) : valide ou refuse"],
+      SP: ["v", "Circuit pénitentiaire (condamnés) : valide ou refuse"] } },
+  { path: "/permis", label: "Permis de visite", acc: {
+      SA: ["v", "Consulte et révoque"], AP: ["v", "Permis de sa prison ; révoque ceux du circuit pénitentiaire"],
+      SP: ["v", "Permis de sa prison ; révoque ceux du circuit pénitentiaire"], PR: ["c", "Ses permis, téléchargement PDF"] } },
+  { path: "/verification-permis", label: "Vérifier un permis", acc: {
+      AG: ["v", "Contrôle à l'entrée (QR, numéro ou code)"], AP: ["v", "Contrôle à l'entrée"], SP: ["v", "Contrôle à l'entrée"] } },
+  { grp: "Justice" },
+  { path: "/decisions/new", label: "Saisir une décision", acc: { GR: ["g", "Saisie avec PDF et effet proposé"] } },
+  { path: "/decisions", label: "Décisions de justice", acc: {
+      GR: ["g", "Consulte et corrige (nouvelle version)"], JI: ["c", "Décisions de ses détenus"], PRO: ["c", "Décisions de ses détenus"],
+      AV: ["c", "Décisions de ses clients"], PR: ["c", "Décisions de ses détenus liés"], SA: ["c", "Toutes les décisions"] } },
+  { path: "/affectations", label: "Affectations judiciaires", acc: {
+      SA: ["g", "Crée et termine les affectations"], ADJ: ["g", "Crée et termine les affectations (son seul écran)"],
+      GR: ["c", "Ses affectations"], JI: ["c", "Ses affectations"], PRO: ["c", "Ses affectations"], AV: ["c", "Ses affectations"] } },
+  { grp: "Argent et cantine" },
+  { path: "/compte-detenu", label: "Compte du détenu", acc: { PR: ["g", "Solde, plafonds, dépôt Wave / Orange Money, journal"] } },
+  { path: "/cantine", label: "Cantine (catalogue et panier)", acc: { PR: ["g", "Commande ; suit et annule ses commandes (/cantine/commandes)"] } },
+  { path: "/cantine/preparation", label: "Commandes cantine", acc: { AP: ["g", "Prépare, livre ou annule (remboursement)"], SP: ["g", "Prépare, livre ou annule (remboursement)"], AG: ["g", "Prépare, livre ou annule (remboursement)"] } },
+  { path: "/cantine/catalogue", label: "Catalogue cantine", acc: { AP: ["g", "Ajoute, modifie, retire des produits"], SP: ["c", "Consulte"] } },
+  { path: "/cantine/plafonds", label: "Plafonds cantine", acc: { AP: ["g", "Fixe période, dépôt et dépense maximum"], SP: ["c", "Consulte"] } },
+  { path: "/comptes", label: "Comptes des détenus", acc: { AP: ["c", "Soldes, journaux, dépôts des proches"], SP: ["c", "Soldes, journaux, dépôts des proches"] } },
+  { grp: "Statistiques nationales" },
+  { path: "/statistiques/justice", label: "Statistiques Justice", acc: { MJ: ["c", "Son accueil"], SA: ["c", "Consulte"] } },
+  { path: "/statistiques/interieur", label: "Statistiques Intérieur", acc: { MI: ["c", "Son accueil"], SA: ["c", "Consulte"] } },
+  { grp: "Administration" },
+  { path: "/proches", label: "Proches à valider", acc: {
+      SA: ["v", "Valide ou refuse les proches"], AP: ["v", "Valide ou refuse les proches de sa prison"], SP: ["v", "Valide ou refuse les proches de sa prison"] } },
+  { path: "/users", label: "Utilisateurs", acc: {
+      SA: ["g", "Tous les comptes, tous les rôles"], AP: ["g", "Comptes de sa prison : AP, SP, agent, personnel de santé"] } },
+  { path: "/etablissements", label: "Établissements", acc: {
+      SA: ["g", "Ajoute et modifie tous les établissements"], AP: ["g", "Modifie le sien"], SP: ["g", "Modifie le sien"] } },
+];
+
+// Parcours : étapes { who: [rôles], t: titre, p: chemin, s: statut, d: détail } ; { alt: [[label, étape], …] } pour un embranchement
+const FLOWS = [
+  { id: "f-connexion", t: "Connexion et écran d'accueil", fam: "admin", roles: ROLES.map(r => r.id),
+    d: "Après connexion, l'application oriente chaque rôle vers son accueil.",
+    steps: [
+      { who: [], t: "Connexion", p: "/login", d: "Identifiant et mot de passe" },
+      { who: [], t: "Vérification du compte", d: "Compte en attente, refusé ou désactivé → page /compte" },
+      { alt: [
+        ["Prison, super admin", { who: ["SA", "AP", "SP", "AG"], t: "Tableau de bord de l'établissement", p: "/" }],
+        ["Proche, acteurs judiciaires", { who: ["PR", "GR", "JI", "PRO", "AV"], t: "« Mes détenus » + raccourcis", p: "/" }],
+        ["Ministères", { who: ["MJ", "MI"], t: "Tableau de bord national", p: "/" }],
+        ["Accès direct", { who: ["PS", "ADJ"], t: "Infirmerie / Affectations", p: "/infirmerie · /affectations" }],
+      ] },
+    ] },
+
+  { id: "f-proche", t: "Devenir proche référent", fam: "proche", roles: ["PR", "AP", "SP", "SA"],
+    d: "Un membre de la famille crée son compte, puis la prison vérifie son lien avec le détenu.",
+    steps: [
+      { who: ["PR"], t: "Inscription", p: "/inscription", d: "Identité et détenu(s) concerné(s)" },
+      { who: ["PR"], t: "Dépôt des pièces", p: "/compte", s: "En attente", d: "Pièce d'identité, justificatif du lien" },
+      { who: ["AP", "SP", "SA"], t: "Validation du lien", p: "/proches", d: "Pièces consultées en ligne ; validation ou refus motivé" },
+      { who: ["PR"], t: "Accès ouvert", p: "/", s: "ACTIF", d: "Accueil « Mes détenus » ; demandes de visite, compte, cantine" },
+    ] },
+
+  { id: "f-visite-jud", t: "Demande de visite — détenu prévenu ou accusé (circuit judiciaire)", fam: "judiciaire",
+    roles: ["PR", "GR", "JI", "PRO", "AG", "SP", "AP"],
+    d: "Deux étapes : le greffier instruit, puis le magistrat décide. Chacun ne voit dans /demandes que les demandes de son étape.",
+    steps: [
+      { who: ["PR"], t: "Dépôt de la demande", p: "/mes-demandes/new", s: "SOUMISE", d: "Demande manuscrite obligatoire, 2 autres visiteurs au plus" },
+      { who: ["GR"], t: "Prise en charge et vérification", p: "/demandes/:id", s: "EN_VERIFICATION", d: "Vérification pièce par pièce" },
+      { alt: [
+        ["Pièce manquante", { who: ["PR"], t: "Le proche complète puis renvoie", p: "/mes-demandes/:id", s: "INCOMPLETE" }],
+        ["Dossier complet", { who: ["GR"], t: "Transmission au magistrat", s: "TRANSMISE", d: "Bloquée tant qu'un problème subsiste" }],
+        ["Refus", { who: ["GR"], t: "Refus motivé", s: "REFUSEE" }],
+      ] },
+      { who: ["JI", "PRO"], t: "Décision du magistrat", p: "/demandes/:id", s: "VALIDEE", d: "Juge si prévenu, procureur si accusé. Validation = permis émis ; sinon refus motivé" },
+      { who: ["PR"], t: "Téléchargement du permis", p: "/permis", d: "PDF avec QR code" },
+      { who: ["AG", "SP", "AP"], t: "Contrôle à l'entrée", p: "/verification-permis", d: "Scan du QR ou saisie ; contrôle de la pièce d'identité. Chaque contrôle est tracé" },
+    ],
+    aside: "Le proche suit chaque étape dans une frise (dépôt → greffe → magistrat → permis), avec date et motif ; les noms des agents ne lui sont pas affichés." },
+
+  { id: "f-visite-pen", t: "Demande de visite — détenu condamné (circuit pénitentiaire)", fam: "prison",
+    roles: ["PR", "AP", "SP", "AG"],
+    d: "Une seule étape, traitée par la direction de la prison.",
+    steps: [
+      { who: ["PR"], t: "Dépôt de la demande", p: "/mes-demandes/new", s: "SOUMISE" },
+      { who: ["AP", "SP"], t: "Vérification des pièces", p: "/demandes/:id", s: "EN_VERIFICATION", d: "Complément possible (INCOMPLETE)" },
+      { alt: [
+        ["Accord", { who: ["AP", "SP"], t: "Validation, permis émis", s: "VALIDEE" }],
+        ["Refus", { who: ["AP", "SP"], t: "Refus motivé", s: "REFUSEE" }],
+      ] },
+      { who: ["PR"], t: "Téléchargement du permis", p: "/permis" },
+      { who: ["AG", "SP", "AP"], t: "Contrôle à l'entrée", p: "/verification-permis" },
+    ],
+    aside: "La direction de la prison peut révoquer un permis de son circuit depuis /permis (révocation motivée, statut REVOQUE)." },
+
+  { id: "f-decision", t: "Décision de justice et effet sur le détenu", fam: "judiciaire",
+    roles: ["GR", "AP", "SP", "JI", "PRO", "AV", "PR", "SA"],
+    d: "Le greffier saisit la décision ; la prison en applique l'effet sur le statut du détenu.",
+    steps: [
+      { who: ["GR"], t: "Saisie de la décision", p: "/decisions/new", d: "Type (condamnation, mandat de dépôt, acquittement, non-lieu, appel…), PDF, statut proposé pré-rempli" },
+      { who: [], t: "Effet proposé", s: "PROPOSE", d: "Compteur orange sur « Gestion des détenus » chez l'AP et le SP" },
+      { alt: [
+        ["Appliquer", { who: ["AP", "SP"], t: "Statut du détenu mis à jour", p: "/detenus ou fiche détenu", s: "APPLIQUE" }],
+        ["Écarter", { who: ["AP", "SP"], t: "Effet écarté", s: "ECARTE" }],
+      ] },
+      { who: ["JI", "PRO", "AV", "PR", "SA"], t: "Consultation", p: "/decisions", d: "Selon le périmètre de chacun" },
+    ],
+    aside: "Correction : le greffier crée une nouvelle version (/decisions/:id/correct). L'historique des versions reste consultable (/decisions?detenu=…&historique=1)." },
+
+  { id: "f-affectation", t: "Affectation d'un détenu aux acteurs judiciaires", fam: "judiciaire",
+    roles: ["SA", "ADJ", "GR", "JI", "PRO", "AV"],
+    d: "Un acteur judiciaire ne voit que les détenus qui lui sont affectés.",
+    steps: [
+      { who: ["SA"], t: "Création des comptes", p: "/users", d: "Administrateur judiciaire, greffiers, juges, procureurs, avocats" },
+      { who: ["SA", "ADJ"], t: "Affectation", p: "/affectations", d: "Un détenu + un dossier → un acteur judiciaire" },
+      { who: ["GR", "JI", "PRO", "AV"], t: "Le détenu apparaît dans « Mes détenus »", p: "/", d: "Avec ses demandes de visite et ses décisions" },
+      { who: ["SA", "ADJ"], t: "Fin d'affectation", p: "/affectations", d: "Jamais supprimée : l'historique est conservé" },
+    ] },
+
+  { id: "f-cantine", t: "Compte du détenu et cantine", fam: "proche", roles: ["AP", "SP", "PR", "AG"],
+    d: "Le proche alimente le compte par mobile money et commande pour le détenu ; la prison prépare et livre.",
+    steps: [
+      { who: ["AP"], t: "Paramétrage", p: "/cantine/catalogue · /cantine/plafonds", d: "Produits et prix ; plafonds de dépôt et de dépense par période" },
+      { who: ["PR"], t: "Dépôt d'argent", p: "/compte-detenu", s: "INITIE", d: "Wave ou Orange Money" },
+      { alt: [
+        ["Paiement reçu", { who: [], t: "Compte crédité par l'opérateur", s: "CONFIRME" }],
+        ["Échec", { who: [], t: "Dépôt non crédité", s: "ECHOUE" }],
+      ] },
+      { who: ["PR"], t: "Commande", p: "/cantine", s: "EN_ATTENTE", d: "Annulable tant qu'elle est en attente (/cantine/commandes)" },
+      { who: ["AP", "SP", "AG"], t: "Préparation", p: "/cantine/preparation", s: "PREPAREE", d: "Onglet « À préparer »" },
+      { who: ["AP", "SP", "AG"], t: "Livraison au détenu", p: "/cantine/preparation", s: "LIVREE", d: "Onglet « À livrer »" },
+    ],
+    aside: "La prison peut annuler une commande avec un motif : le montant est remboursé sur le compte (ANNULEE). L'AP et le SP suivent soldes et dépôts dans /comptes. Montants en F CFA ; solde, plafonds et stock sont contrôlés par le serveur." },
+
+  { id: "f-transfert", t: "Transfert vers une autre prison", fam: "prison", roles: ["AG", "AP", "SP"],
+    d: "Les sorties temporaires (extraction, hôpital…) suivent le même schéma, avec date de retour prévue puis retour constaté.",
+    steps: [
+      { who: ["AG", "AP"], t: "Création", p: "/transfers/new", s: "PENDING", d: "Prison d'arrivée, motif, priorité (normale, urgente, critique)" },
+      { alt: [
+        ["Accord", { who: ["AP", "SP"], t: "Validation par la prison d'origine", s: "APPROVED" }],
+        ["Refus", { who: ["AP", "SP"], t: "Rejet motivé", s: "REJECTED" }],
+      ] },
+      { who: ["AG", "AP", "SP"], t: "Réception par la prison d'arrivée", p: "/transfers/:id", s: "COMPLETED" },
+    ],
+    aside: "Sortie temporaire : /transfers/sorties/new." },
+
+  { id: "f-infirmerie", t: "Infirmerie", fam: "sante", roles: ["PS", "AP", "SP"],
+    d: "Le secret médical est appliqué par le serveur : seul le personnel de santé voit les pathologies.",
+    steps: [
+      { who: ["PS"], t: "Dossier médical", p: "/infirmerie/new", d: "Pathologie, description, date de diagnostic" },
+      { who: ["PS"], t: "Suivi et mise à jour", p: "/infirmerie/update/:id" },
+      { who: ["AP", "SP"], t: "Activité de l'infirmerie", p: "/infirmerie", d: "Détenus suivis et dates de prise en charge, sans aucune donnée médicale" },
+    ] },
+
+  { id: "f-stats", t: "Statistiques nationales", fam: "national", roles: ["MJ", "MI", "SA"],
+    d: "Chaque ministère a son tableau de bord ; le super administrateur voit les deux.",
+    steps: [
+      { who: ["MJ", "MI"], t: "Accueil = tableau de bord", p: "/", d: "Justice ou Intérieur selon le ministère" },
+      { who: ["MJ", "MI", "SA"], t: "Filtres", p: "?prison=…&du=…&au=…", d: "Prisons et période (12 derniers mois par défaut). Lien partageable" },
+      { who: ["MJ", "MI", "SA"], t: "Lecture", d: "Effectifs et occupation « à ce jour » ; flux sur la période ; évolution ; vue tableau de chaque graphique" },
+    ] },
+];
+
+// ── Rendu ────────────────────────────────────────────────────────────────────────────────────
+const byId = Object.fromEntries(ROLES.map(r => [r.id, r]));
+const colorOf = id => FAMILIES[byId[id].fam].color;
+const chip = id => `<span class="chip" style="--c:${colorOf(id)}" title="${byId[id].label}">${byId[id].label}</span>`;
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+// 1. Familles
+document.getElementById("families").innerHTML = Object.entries(FAMILIES).map(([k, f]) => `
+  <div class="family" style="--c:${f.color}">
+    <h3>${f.label}</h3><small>${f.desc}</small>
+    <ul>${ROLES.filter(r => r.fam === k).map(r => `<li><b>${r.label}</b><br><small>${r.role}</small></li>`).join("")}</ul>
+  </div>`).join("");
+
+// 2. Vue par rôle
+const LVL = { g: "gère", v: "décide / valide", c: "consulte" };
+function showRole(id) {
+  const r = byId[id];
+  document.querySelectorAll("#picker button").forEach(b => b.classList.toggle("on", b.dataset.id === id));
+  const items = SCREENS.filter(s => s.acc && s.acc[id]);
+  const homeInMenu = !["PS", "ADJ"].includes(id);
+  const flows = FLOWS.filter(f => f.roles.includes(id));
+  document.getElementById("profile").innerHTML = `
+    <div class="profile" style="--c:${FAMILIES[r.fam].color}">
+      <div>
+        <h3>${r.label}</h3>
+        <p style="margin:6px 0 0">${r.role}</p>
+        <dl>
+          <dt>Code</dt><dd><code>${r.code}</code></dd>
+          <dt>Périmètre</dt><dd>${r.scope}</dd>
+          <dt>Accueil</dt><dd><b>${r.home}</b> <code>${r.homePath}</code><br><small>${r.homeDesc}</small></dd>
+        </dl>
+        <div class="flows-links"><b>Parcours :</b> ${flows.map(f => `<a href="#${f.id}">${f.t}</a>`).join(" · ") || "—"}</div>
+      </div>
+      <div class="menu">
+        <div class="head">Menu latéral</div>
+        ${homeInMenu ? `<div class="item"><span>${r.home}</span><span>/</span></div>` : ""}
+        ${items.map((s) => `<div class="item" title="${esc(s.acc[id][1])}">
+            <span>${s.label} <small style="color:#94a3b8">· ${LVL[s.acc[id][0]]}</small></span><span>${s.path}</span></div>`).join("")}
+        <div class="bell">🔔 Notifications (en-tête) · <span style="font-family:ui-monospace,Consolas,monospace">/notifications</span></div>
+      </div>
+    </div>`;
+  document.querySelectorAll("#matrix col.role").forEach(c => c.classList.toggle("hl", c.dataset.id === id));
+}
+document.getElementById("picker").innerHTML = ROLES.map(r =>
+  `<button data-id="${r.id}" style="--c:${FAMILIES[r.fam].color}">${r.label}</button>`).join("");
+document.getElementById("picker").addEventListener("click", e => { const b = e.target.closest("button"); if (b) showRole(b.dataset.id); });
+
+// 3. Matrice
+const m = document.getElementById("matrix");
+m.innerHTML = `
+  <colgroup><col>${ROLES.map(r => `<col class="role" data-id="${r.id}">`).join("")}</colgroup>
+  <thead><tr><th>Écran</th>${ROLES.map(r => `<th class="rc" style="--c:${FAMILIES[r.fam].color};cursor:pointer" data-id="${r.id}" title="${r.label}">${r.id}</th>`).join("")}</tr></thead>
+  <tbody>
+    <tr><td><b>Accueil</b> <code>/</code></td>${ROLES.map(r => `<td><span class="lvl c" title="${esc(r.home + " — " + r.homeDesc)}">C</span></td>`).join("")}</tr>
+    ${SCREENS.map(s => s.grp
+      ? `<tr><td class="grp" colspan="${ROLES.length + 1}">${s.grp}</td></tr>`
+      : `<tr><td>${s.label} <code>${s.path}</code></td>${ROLES.map(r => {
+          const a = s.acc[r.id];
+          return `<td>${a ? `<span class="lvl ${a[0]}" title="${esc(r.label + " : " + a[1])}">${a[0].toUpperCase()}</span>` : ""}</td>`;
+        }).join("")}</tr>`).join("")}
+    <tr><td><b>Notifications</b> <code>/notifications</code></td>${ROLES.map(() => `<td><span class="lvl c" title="Ses propres notifications">C</span></td>`).join("")}</tr>
+  </tbody>`;
+m.querySelector("thead").addEventListener("click", e => {
+  const th = e.target.closest("th[data-id]"); if (th) { showRole(th.dataset.id); document.getElementById("par-role").scrollIntoView({ behavior: "smooth" }); }
+});
+m.querySelector("tbody").addEventListener("mouseover", e => {
+  m.querySelectorAll("tr.hl").forEach(t => t.classList.remove("hl")); const tr = e.target.closest("tr"); if (tr) tr.classList.add("hl");
+});
+
+// 4. Parcours
+const famColor = who => who.length ? colorOf(who[0]) : "var(--admin)";
+const stepHtml = (s, n) => `
+  <div class="step" style="--c:${famColor(s.who)}">
+    ${n ? `<span class="n">${n}</span>` : ""}
+    <div>${s.who.length ? s.who.map(chip).join("") : `<span class="chip" style="--c:#94a3b8">Système</span>`}</div>
+    <b>${s.t}</b>
+    ${s.p ? `<span class="path">${s.p}</span>` : ""}
+    ${s.s ? `<div class="st"><span class="status">${s.s}</span></div>` : ""}
+    ${s.d ? `<small>${s.d}</small>` : ""}
+  </div>`;
+document.getElementById("flows").innerHTML = FLOWS.map(f => {
+  let n = 0;
+  const steps = f.steps.map(s => s.alt
+    ? `<div class="branch">${s.alt.map(([lbl, st]) => `<div class="lbl">${lbl}</div>${stepHtml(st)}`).join("")}</div>`
+    : stepHtml(s, ++n)).join(`<div class="arrow">➜</div>`);
+  return `
+    <div class="flow" id="${f.id}" style="--c:${FAMILIES[f.fam].color}">
+      <h3 style="color:${FAMILIES[f.fam].color}">${f.t}</h3>
+      <p>${f.d}</p>
+      <div class="steps">${steps}</div>
+      ${f.aside ? `<div class="aside">${f.aside}</div>` : ""}
+    </div>`;
+}).join("");
+
+showRole("AP");
+</script>
+</body>
+</html>

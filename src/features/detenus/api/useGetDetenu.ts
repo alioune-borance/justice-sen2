@@ -1,6 +1,6 @@
 // get detenus list using axiosInstance
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
-import { getDetenus, getDetenuById, addNewDetenu, updateDetenu } from "./detenus.api";
+import { getDetenus, getDetenuById, addNewDetenu, updateDetenu, releaseDetenu } from "./detenus.api";
 import { Detenu, UpdateDetenuDto } from '../types/detenu';
 
 
@@ -33,6 +33,19 @@ export const useCreateDetenu = () => {
     },
     onError: (error: any) => {
       console.error('Error creating detenu:', error);
+    },
+  });
+};
+
+
+export const useReleaseDetenu = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, release_date }: { id: number; release_date?: string }) => releaseDetenu(id, release_date),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['detenus'] });
+      queryClient.invalidateQueries({ queryKey: ['detenu', variables.id] });
     },
   });
 };

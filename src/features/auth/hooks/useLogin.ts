@@ -1,13 +1,21 @@
 // src/features/auth/hooks/useLogin.ts
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { login } from "../api/auth.api";
-import { useAuthStore } from "../store/auth.store";
-import { decodeToken } from "../utils/decodeToken";
+import { endLocalSession, establishSession, initSessionSync } from "../session";
+
+const loginErrorMessage = (error: unknown): string => {
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+  if (status === 401) return "Identifiants invalides";
+  if (status === 429) return "Trop de tentatives. Réessayez dans une minute.";
+  if (status === 403) return "Accès refusé. Rechargez la page puis réessayez.";
+  if (status === 503) return "Service d'authentification indisponible.";
+  return "Connexion impossible. Réessayez plus tard.";
+};
 
 export const useLogin = () => {
   const navigate = useNavigate();
-  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,22 +24,15 @@ export const useLogin = () => {
     try {
       setLoading(true);
       setError(null);
+      initSessionSync();
 
       const response = await login({ username, password });
-
-      const decoded = decodeToken(response.access_token);
-
-      const user = {
-        username: decoded.preferred_username,
-        email: decoded.email,
-        roles: decoded.realm_access?.roles ?? [],
-      };
-
-      setAuth(response.access_token, user);
+      await establishSession(response.access_token);
 
       navigate("/", { replace: true });
-    } catch {
-      setError("Identifiants invalides");
+    } catch (err) {
+      endLocalSession();
+      setError(loginErrorMessage(err));
     } finally {
       setLoading(false);
     }

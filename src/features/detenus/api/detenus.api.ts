@@ -11,16 +11,20 @@ export const getDetenus = async (
   params?: DetenusParams
 ): Promise<Detenu[]> => {  // Changed to return array directly
   const { data } = await axiosInstance.get<Detenu[]>("prisoners/", { params });
-  console.log(data)
   return data;
 };
 
 
 export const getDetenuById = async (id: number): Promise<Detenu> => {
   const { data } = await axiosInstance.get<Detenu>(`prisoners/${id}/`);
-  console.log("Fetched detenu data:", data);
   return data;
 }
+
+// Libération validée par un SUPERVISEUR ou un ADMIN de la prison (backend : POST prisoners/{id}/release/)
+export const releaseDetenu = async (id: number, release_date?: string): Promise<Detenu> => {
+  const { data } = await axiosInstance.post<Detenu>(`prisoners/${id}/release/`, release_date ? { release_date } : {});
+  return data;
+};
 
 
 export const addNewDetenu = async (detenuData: Omit<Detenu, 'id'>): Promise<Detenu> => {

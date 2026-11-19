@@ -1,13 +1,16 @@
 // features/detenus/components/InmateTable.tsx
 import React, { useState, useEffect } from 'react';
 import { User, Eye, Edit, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, prisonerStatusLabel, prisonerStatusStyle } from '../../features/detenus/types/detenu';
 import { InmateTableRow } from '../../features/detenus/types/detenu';
 
 interface InmateTableProps {
   detenus: InmateTableRow[];
   onViewDetail: (id: number) => void;
-  onEdit: (id: number) => void;
+  // Absent : pas de bouton « Modifier » (permission manquante)
+  onEdit?: (id: number) => void;
+  // Ex. détenu d'une autre prison (historique, transfert entrant) : lecture seule
+  canEdit?: (detenu: InmateTableRow) => boolean;
   loading?: boolean;
 }
 
@@ -17,6 +20,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
   detenus,
   onViewDetail,
   onEdit,
+  canEdit = () => true,
   loading = false,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,16 +33,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
   const totalPages = Math.max(1, Math.ceil(detenus.length / PAGE_SIZE));
   const paginated = detenus.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Condamné':
-        return 'bg-red-100 text-red-800';
-      case 'Prévenu':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getStatusColor = prisonerStatusStyle;
 
   if (loading) {
     return (
@@ -117,7 +112,7 @@ export const InmateTable: React.FC<InmateTableProps> = ({
               <td className="px-4 py-3 text-sm text-gray-800">{detenu.prisonName}</td>
               <td className="px-4 py-3">
                 <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(detenu.status)}`}>
-                  {detenu.status}
+                  {prisonerStatusLabel(detenu.status)}
                 </span>
               </td>
               <td className="px-4 py-3">
@@ -129,13 +124,15 @@ export const InmateTable: React.FC<InmateTableProps> = ({
                   >
                     <Eye className="h-4 w-4" />
                   </button>
-                  <button 
-                    onClick={() => onEdit(detenu.id)}
-                    className="p-1 text-gray-600 hover:text-gray-800" 
-                    title="Modifier"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
+                  {onEdit && canEdit(detenu) && (
+                    <button
+                      onClick={() => onEdit(detenu.id)}
+                      className="p-1 text-gray-600 hover:text-gray-800"
+                      title="Modifier"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  )}
                   <button className="p-1 text-gray-600 hover:text-gray-800" title="Plus d'options">
                     <MoreVertical className="h-4 w-4" />
                   </button>

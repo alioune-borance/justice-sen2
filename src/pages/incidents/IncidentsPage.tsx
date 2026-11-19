@@ -14,10 +14,13 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useGetIncidents, useAddDisciplinaryRecord } from '../../features/incidents/api/useGetIncident';
+import { useGetIncidents, useAddDisciplinaryRecord, useDecideSanction } from '../../features/incidents/api/useGetIncident';
 import { Incident, DisciplinaryRecord } from '../../features/incidents/types/incident';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
 import { Detenu } from '../../features/detenus/types/detenu';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { Can } from '../../features/auth/components/Can';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
 
 // ─── Types d'incidents rapides ────────────────────────────────────────────────
 const QUICK_TYPES = [
@@ -55,6 +58,32 @@ export const IncidentsPage: React.FC = () => {
   const { data: allIncidents = [], isLoading } = useGetIncidents();
   const { data: detenus = [] } = useGetDetenus();
   const addRecord = useAddDisciplinaryRecord();
+  const { can, isMyPrison } = usePermissions();
+  const decideSanction = useDecideSanction();
+
+  // Sanctions proposées en attente de validation, dans le périmètre d'écriture de l'utilisateur
+  const pendingSanctions = useMemo(
+    () =>
+      can('disciplinary_records:validate')
+        ? (allIncidents as Incident[]).flatMap((inc) =>
+            isMyPrison(inc.prison)
+              ? (inc.disciplinary_records ?? [])
+                  .filter((r) => r.sanction_status === 'PROPOSED' && r.id != null)
+                  .map((r) => ({ incident: inc, record: r }))
+              : []
+          )
+        : [],
+    [allIncidents, can, isMyPrison]
+  );
+
+  const handleDecideSanction = (prisonerId: number, recordId: number, action: 'approve' | 'reject') => {
+    const reason = action === 'reject' ? window.prompt('Motif du refus (facultatif) :') : undefined;
+    if (reason === null) return; // annulé
+    decideSanction.mutate(
+      { prisonerId, recordId, action, reason: reason || undefined },
+      { onError: (error) => window.alert(getApiErrorMessage(error)) }
+    );
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
@@ -431,22 +460,61 @@ export const IncidentsPage: React.FC = () => {
             </svg>
             Rapport PDF
           </button>
-          <button
-            onClick={openModal}
-            className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
-          >
-            <Zap className="h-4 w-4" />
-            Incident rapide
-          </button>
-          <button
-            onClick={() => navigate('/incidents/new')}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Signaler un incident
-          </button>
+          <Can perm="disciplinary_records:create">
+            <button
+              onClick={openModal}
+              className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
+            >
+              <Zap className="h-4 w-4" />
+              Incident rapide
+            </button>
+            <button
+              onClick={() => navigate('/incidents/new')}
+              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Signaler un incident
+            </button>
+          </Can>
         </div>
       </div>
+
+      {/* Sanctions à valider (SUPERVISEUR / ADMIN de la prison) */}
+      {pendingSanctions.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+          <h3 className="text-base font-semibold text-amber-900">
+            Sanctions à valider ({pendingSanctions.length})
+          </h3>
+          {pendingSanctions.map(({ incident, record }) => (
+            <div key={record.id} className="flex items-center justify-between gap-4 bg-white rounded-lg border border-amber-100 p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">
+                  {incident.first_name} {incident.last_name} — {record.infraction}
+                </p>
+                <p className="text-sm text-gray-600 truncate" title={record.sanction}>
+                  Sanction proposée : {record.sanction}
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => handleDecideSanction(incident.id, record.id!, 'reject')}
+                  disabled={decideSanction.isPending}
+                  className="px-3 py-1 border border-red-300 text-red-700 rounded hover:bg-red-50 text-sm disabled:opacity-50"
+                >
+                  Refuser
+                </button>
+                <button
+                  onClick={() => handleDecideSanction(incident.id, record.id!, 'approve')}
+                  disabled={decideSanction.isPending}
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm disabled:opacity-50"
+                >
+                  Valider
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -526,13 +594,15 @@ export const IncidentsPage: React.FC = () => {
                         {latest.description}
                       </td>
                       <td className="py-3">
-                        <button
-                          onClick={() => navigate(`/incidents/update/${inc.id}`)}
-                          className="p-1 text-gray-500 hover:text-gray-800"
-                          title="Modifier"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
+                        <Can perm="disciplinary_records:update" when={isMyPrison(inc.prison)}>
+                          <button
+                            onClick={() => navigate(`/incidents/update/${inc.id}`)}
+                            className="p-1 text-gray-500 hover:text-gray-800"
+                            title="Modifier"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        </Can>
                       </td>
                     </tr>
                   );

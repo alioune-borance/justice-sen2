@@ -1,3 +1,4 @@
+import { PRISONER_STATUSES, STATUS_FAMILY_FILTERS } from '../../features/detenus/types/detenu';
 // components/inmates/InmateFilters.tsx
 import React from 'react';
 import { Search, Filter } from 'lucide-react';
@@ -47,8 +48,8 @@ export const InmateFilters: React.FC<InmateFiltersProps> = ({
           onChange={(e) => onStatusFilterChange(e.target.value)}
         >
           <option value="all">Tous les statuts</option>
-          <option value="Condamné">Condamné</option>
-          <option value="Prévenu">Prévenu</option>
+          {STATUS_FAMILY_FILTERS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+          {PRISONER_STATUSES.map((st) => <option key={st.value} value={st.value}>{st.label}</option>)}
         </select>
         {/* <select
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

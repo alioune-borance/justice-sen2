@@ -8,7 +8,8 @@ import { Visitor } from '../../features/visites/types/visitor';
 interface VisitTableProps {
   visites: VisiteTableRow[];
   onViewDetail: (id: number) => void;
-  onEdit: (visite: VisiteTableRow) => void;
+  // Absent : pas de bouton « Modifier » (permission manquante)
+  onEdit?: (visite: VisiteTableRow) => void;
   loading?: boolean;
 }
 
@@ -163,13 +164,15 @@ const getVisitorName = (visitor_id: number) => {
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button
-                      onClick={() => onEdit(visite)}
-                      className="p-1 text-gray-500 hover:text-gray-800"
-                      title="Modifier"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(visite)}
+                        className="p-1 text-gray-500 hover:text-gray-800"
+                        title="Modifier"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

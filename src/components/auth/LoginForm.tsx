@@ -1,5 +1,6 @@
 // src/features/auth/components/LoginForm.tsx
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useLogin } from "../../features/auth/hooks/useLogin";
 import { Shield, User, Lock, Eye, EyeOff } from "lucide-react";
 
@@ -106,6 +107,10 @@ export const LoginForm = () => {
         <div className="px-8 pb-6 text-center">
           <p className="text-blue-300 text-xs">
             Accès réservé au personnel autorisé
+          </p>
+          <p className="text-blue-200 text-sm mt-3">
+            Proche d'un détenu ?{" "}
+            <Link to="/inscription" className="underline hover:text-white">Créer un compte</Link>
           </p>
         </div>
       </div>

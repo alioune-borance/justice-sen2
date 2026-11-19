@@ -7,8 +7,15 @@ export interface DecodedToken {
   exp: number;
 }
 
-export const decodeToken = (token: string): DecodedToken => {
-  const payload = token.split(".")[1];
-  const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-  return JSON.parse(decoded);
+// Renvoie null si le token n'est pas un JWT (ex: token opaque type DRF utilisé en local sans Keycloak).
+export const decodeToken = (token: string): DecodedToken | null => {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const decoded = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
 };

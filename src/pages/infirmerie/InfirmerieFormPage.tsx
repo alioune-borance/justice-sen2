@@ -4,19 +4,25 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, Stethoscope } from 'lucide-react';
 import { useAddHealthRecord } from '../../features/infirmerie/api/useGetInfirmerie';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu } from '../../features/detenus/types/detenu';
+import { Detenu, isInCustody, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { HealthRecord } from '../../features/infirmerie/types/infirmerie';
+import { usePermissions } from '../../features/auth/hooks/usePermissions';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
 
 export const InfirmerieFormPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
   const addRecordMutation = useAddHealthRecord();
+  const { isMyPrison } = usePermissions();
+  // Seuls les détenus présents dans l'établissement : prévenus ou condamnés, actuellement dans sa prison
+  // (la liste reçue contient aussi, en lecture seule, les anciens détenus et les transferts entrants)
+  const patients = detenusList.filter((d: Detenu) => isInCustody(d) && isMyPrison(d.prison));
 
   const [prisonerId, setPrisonerId] = useState<string>('');
   const [record, setRecord] = useState<HealthRecord>({
-    condition_medical: '',
+    medical_condition: '',
     description: '',
-    date_diagnosis: new Date().toISOString().slice(0, 10),
+    date_of_diagnosis: new Date().toISOString().slice(0, 10),
   });
   const [errors, setErrors] = useState<{ prisoner?: string } & Partial<HealthRecord>>({});
 
@@ -31,9 +37,9 @@ export const InfirmerieFormPage: React.FC = () => {
   const validate = (): boolean => {
     const next: typeof errors = {};
     if (!prisonerId) next.prisoner = 'Veuillez sélectionner un détenu.';
-    if (!record.condition_medical.trim()) next.condition_medical = 'La condition médicale est obligatoire.';
+    if (!record.medical_condition.trim()) next.medical_condition = 'La condition médicale est obligatoire.';
     if (!record.description.trim()) next.description = 'La description est obligatoire.';
-    if (!record.date_diagnosis) next.date_diagnosis = 'La date de diagnostic est obligatoire.';
+    if (!record.date_of_diagnosis) next.date_of_diagnosis = 'La date de diagnostic est obligatoire.';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -45,9 +51,9 @@ export const InfirmerieFormPage: React.FC = () => {
       await addRecordMutation.mutateAsync({
         prisonerId: parseInt(prisonerId),
         record: {
-          condition_medical: record.condition_medical.trim(),
+          medical_condition: record.medical_condition.trim(),
           description: record.description.trim(),
-          date_diagnosis: record.date_diagnosis,
+          date_of_diagnosis: record.date_of_diagnosis,
         },
       });
       navigate('/infirmerie');
@@ -56,7 +62,7 @@ export const InfirmerieFormPage: React.FC = () => {
     }
   };
 
-  const selectedDetenu = detenusList.find((d: Detenu) => d.id === parseInt(prisonerId));
+  const selectedDetenu = patients.find((d: Detenu) => d.id === parseInt(prisonerId));
 
   return (
     <div className="space-y-6">
@@ -107,13 +113,19 @@ export const InfirmerieFormPage: React.FC = () => {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50"
                   >
                     <option value="">-- Sélectionner un détenu --</option>
-                    {detenusList.map((d: Detenu) => (
+                    {patients.map((d: Detenu) => (
                       <option key={d.id} value={d.id}>
-                        {d.first_name} {d.last_name}{d.matricule_number ? ` — ${d.matricule_number}` : ''}
+                        {d.first_name} {d.last_name}{d.matricule_number ? ` — ${d.matricule_number}` : ''} ({prisonerStatusLabel(d.status)})
                       </option>
                     ))}
                   </select>
                   {errors.prisoner && <p className="text-red-500 text-xs mt-1">{errors.prisoner}</p>}
+                  {!isLoadingDetenus && patients.length === 0 && (
+                    <p className="text-gray-500 text-xs mt-1">Aucun détenu prévenu ou condamné dans votre établissement.</p>
+                  )}
+                  {addRecordMutation.isError && (
+                    <p className="text-red-600 text-sm mt-2">{getApiErrorMessage(addRecordMutation.error)}</p>
+                  )}
                 </div>
 
                 {/* Récapitulatif détenu */}
@@ -122,11 +134,15 @@ export const InfirmerieFormPage: React.FC = () => {
                     <span className="text-gray-500">Matricule</span>
                     <span className="font-medium">{selectedDetenu.matricule_number}</span>
                     <span className="text-gray-500">Statut</span>
-                    <span className="font-medium">{selectedDetenu.status}</span>
-                    <span className="text-gray-500">Incarcéré le</span>
-                    <span className="font-medium">
-                      {new Date(selectedDetenu.incarceration_date).toLocaleDateString('fr-FR')}
-                    </span>
+                    <span className="font-medium">{prisonerStatusLabel(selectedDetenu.status)}</span>
+                    {selectedDetenu.incarceration_date && (
+                      <>
+                        <span className="text-gray-500">Incarcéré le</span>
+                        <span className="font-medium">
+                          {new Date(selectedDetenu.incarceration_date).toLocaleDateString('fr-FR')}
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -136,13 +152,13 @@ export const InfirmerieFormPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    name="condition_medical"
-                    value={record.condition_medical}
+                    name="medical_condition"
+                    value={record.medical_condition}
                     onChange={handleRecordChange}
                     placeholder="Ex : Hypertension, Fracture, Grippe…"
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
-                  {errors.condition_medical && <p className="text-red-500 text-xs mt-1">{errors.condition_medical}</p>}
+                  {errors.medical_condition && <p className="text-red-500 text-xs mt-1">{errors.medical_condition}</p>}
                 </div>
 
                 <div>
@@ -151,14 +167,14 @@ export const InfirmerieFormPage: React.FC = () => {
                   </label>
                   <input
                     type="date"
-                    name="date_diagnosis"
-                    value={record.date_diagnosis}
+                    name="date_of_diagnosis"
+                    value={record.date_of_diagnosis}
                     onChange={handleRecordChange}
                     max={new Date().toISOString().slice(0, 10)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
-                  {errors.date_diagnosis && (
-                    <p className="text-red-500 text-xs mt-1">{errors.date_diagnosis}</p>
+                  {errors.date_of_diagnosis && (
+                    <p className="text-red-500 text-xs mt-1">{errors.date_of_diagnosis}</p>
                   )}
                 </div>
               </div>
