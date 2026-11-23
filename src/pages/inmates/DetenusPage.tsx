@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useGetDetenus, useCreateDetenu, useUpdateDetenu } from '../../features/detenus/api/useGetDetenu';
-import { Detenu, InmateTableRow, isJudicialStage, isSentenced, matchesStatusFilter, prisonerStatusLabel, STATUS_FAMILY_FILTERS, PRISONER_STATUSES } from '../../features/detenus/types/detenu';
+import { Detenu, InmateTableRow, isInCustody, isJudicialStage, isSentenced,matchesStatusFilter, prisonerStatusLabel, STATUS_FAMILY_FILTERS, PRISONER_STATUSES } from '../../features/detenus/types/detenu';
 import { InmateTable } from '../../components/inmates/InmateTable';
 import { InmateFilters } from '../../components/inmates/InmateFilters';
 import { InmateStats } from '../../components/inmates/InmateStats';
@@ -17,10 +17,16 @@ import { PendingDecisionEffects } from '../../features/decisions/components/Pend
 
 export const InmateListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { can, isMyPrison } = usePermissions();
+  const { can, isMyPrison, isMyPrisonAlways } = usePermissions();
 
   // API Hooks
-  const { data: detenus = [], isLoading, isError, refetch } = useGetDetenus();
+  const { data: allDetenus = [], isLoading, isError, refetch } = useGetDetenus();
+  // Seulement les détenus de sa prison (toutes pour un compte national) : la liste reçue contient aussi,
+  // en lecture seule, les anciens détenus partis ailleurs et les transferts entrants
+  const detenus = useMemo(
+    () => allDetenus.filter((d: Detenu) => isMyPrisonAlways(d.prison)),
+    [allDetenus, isMyPrisonAlways]
+  );
   const createMutation = useCreateDetenu();
   const { data: prisons = [], isLoading: isLoadingPrisons } = useGetPrisons(); // Use the correct data property
   
@@ -107,7 +113,8 @@ export const InmateListPage: React.FC = () => {
   const statistics = useMemo(() => {
     const convicted = tableRows.filter(d => isSentenced(d)).length;
     const pretrial = tableRows.filter(d => isJudicialStage(d)).length;
-    const total = tableRows.length;
+    // Effectif : prévenus, accusés et condamnés (jamais libérés, évadés ni décédés)
+    const total = tableRows.filter(d => isInCustody(d)).length;
     const now = new Date()
   // Libérations ce mois : statut LIBERE + release_date dans le mois courant
   const liberationsThisMonth = detenus.filter((d: Detenu) => {
@@ -126,11 +133,11 @@ export const InmateListPage: React.FC = () => {
 
   // Prepare prison options for filter dropdown
   const prisonOptions = useMemo(() => {
-    return prisons.map((prison: Prison) => ({
+    return prisons.filter((prison: Prison) => isMyPrisonAlways(prison.id)).map((prison: Prison) => ({
       value: prison.name,
       label: prison.name
     }));
-  }, [prisons]);
+  }, [prisons, isMyPrisonAlways]);
 
   const filterLabel =
     STATUS_FAMILY_FILTERS.find((f) => f.value === statusFilter)?.label ??

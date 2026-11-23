@@ -38,5 +38,16 @@ export const usePermissions = () => {
     [user]
   );
 
-  return { user, role: user?.role ?? null, can, canAny, canDo, allows, isMyPrison };
+  // Même test, appliqué aussi en mode observation : ressources que le backend cloisonne toujours
+  // (incidents depuis le 2026-11-19)
+  const isMyPrisonAlways = useCallback(
+    (prisonId: number | null | undefined) => {
+      if (!user) return false;
+      if (user.scope.type === "national") return true;
+      return prisonId != null && (user.scope.prison_ids ?? []).includes(Number(prisonId));
+    },
+    [user]
+  );
+
+  return { user, role: user?.role ?? null, can, canAny, canDo, allows, isMyPrison, isMyPrisonAlways };
 };

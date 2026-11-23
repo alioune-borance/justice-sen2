@@ -3,20 +3,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, Stethoscope } from 'lucide-react';
 import { useAddHealthRecord } from '../../features/infirmerie/api/useGetInfirmerie';
-import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
-import { Detenu, isInCustody, prisonerStatusLabel } from '../../features/detenus/types/detenu';
+import { useDetenusPresents } from '../../features/detenus/hooks/useDetenusPresents';
+import { Detenu, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { HealthRecord } from '../../features/infirmerie/types/infirmerie';
-import { usePermissions } from '../../features/auth/hooks/usePermissions';
 import { getApiErrorMessage } from '../../shared/api/errorMessages';
 
 export const InfirmerieFormPage: React.FC = () => {
   const navigate = useNavigate();
-  const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
+  // Seuls les détenus présents dans l'établissement (prévenus, accusés ou condamnés, dans sa prison)
+  const { data: patients, isLoading: isLoadingDetenus } = useDetenusPresents();
   const addRecordMutation = useAddHealthRecord();
-  const { isMyPrison } = usePermissions();
-  // Seuls les détenus présents dans l'établissement : prévenus ou condamnés, actuellement dans sa prison
-  // (la liste reçue contient aussi, en lecture seule, les anciens détenus et les transferts entrants)
-  const patients = detenusList.filter((d: Detenu) => isInCustody(d) && isMyPrison(d.prison));
 
   const [prisonerId, setPrisonerId] = useState<string>('');
   const [record, setRecord] = useState<HealthRecord>({

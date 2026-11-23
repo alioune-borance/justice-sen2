@@ -3,14 +3,18 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, AlertTriangle } from 'lucide-react';
 import { useAddDisciplinaryRecord } from '../../features/incidents/api/useGetIncident';
-import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
+import { useDetenusPresents } from '../../features/detenus/hooks/useDetenusPresents';
 import { Detenu, prisonerStatusLabel } from '../../features/detenus/types/detenu';
 import { DisciplinaryRecord } from '../../features/incidents/types/incident';
+import { getApiErrorMessage } from '../../shared/api/errorMessages';
 
 export const IncidentFormPage: React.FC = () => {
   const navigate = useNavigate();
-  const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
+  // Seulement les détenus présents dans sa prison (prévenus, accusés ou condamnés ; backend cloisonné même
+  // en mode observation) : un incident notifie les gestionnaires de la prison du détenu
+  const { data: selectableDetenus, isLoading: isLoadingDetenus } = useDetenusPresents();
   const addRecordMutation = useAddDisciplinaryRecord();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [prisonerId, setPrisonerId] = useState<string>('');
   const [record, setRecord] = useState<DisciplinaryRecord>({
@@ -42,6 +46,7 @@ export const IncidentFormPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validate()) return;
+    setSubmitError(null);
     try {
       await addRecordMutation.mutateAsync({
         prisonerId: parseInt(prisonerId),
@@ -55,11 +60,11 @@ export const IncidentFormPage: React.FC = () => {
       });
       navigate('/incidents');
     } catch (error) {
-      console.error('Erreur lors de la soumission:', error);
+      setSubmitError(getApiErrorMessage(error));
     }
   };
 
-  const selectedDetenu = detenusList.find((d: Detenu) => d.id === parseInt(prisonerId));
+  const selectedDetenu = selectableDetenus.find((d: Detenu) => d.id === parseInt(prisonerId));
 
   return (
     <div className="space-y-6">
@@ -110,7 +115,7 @@ export const IncidentFormPage: React.FC = () => {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
                   >
                     <option value="">-- Sélectionner un détenu --</option>
-                    {detenusList.map((d: Detenu) => (
+                    {selectableDetenus.map((d: Detenu) => (
                       <option key={d.id} value={d.id}>
                         {d.first_name} {d.last_name}{d.matricule_number ? ` — ${d.matricule_number}` : ''}
                       </option>
@@ -203,6 +208,9 @@ export const IncidentFormPage: React.FC = () => {
 
           {/* Actions */}
           <div className="p-6 border-t border-gray-200 bg-gray-50">
+            {submitError && (
+              <p role="alert" className="mb-3 text-sm text-red-600">{submitError}</p>
+            )}
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
