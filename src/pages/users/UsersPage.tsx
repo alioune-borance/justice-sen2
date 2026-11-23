@@ -21,7 +21,7 @@ const STATUS_STYLES: Record<string, string> = {
 // Gestion des comptes : SUPER_ADMIN (tous les rôles) ; ADMIN_PRISON (rôles prison de son établissement ;
 // il voit les proches de ses détenus mais ne gère pas leurs comptes)
 export const UsersPage: React.FC = () => {
-  const { user, role, isMyPrison } = usePermissions();
+  const { user, role, isMyPrisonAlways } = usePermissions();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   // null : formulaire fermé ; "new" : création ; sinon le compte modifié
@@ -32,12 +32,13 @@ export const UsersPage: React.FC = () => {
   const { data: prisons = [] } = useGetPrisons();
   const setActive = useSetUserActive();
 
-  const isAdminPrison = role === "ADMIN_PRISON" && !!user?.rbac_enforced;
+  // Règles appliquées par le backend dans tous les modes, mode observation compris (2026-11-23)
+  const isAdminPrison = role === "ADMIN_PRISON";
   const assignable = useMemo(() => new Set<Role>((user?.assignable_roles ?? []).map((r) => r.value)), [user]);
 
   // Gestion d'un compte (affichage) : pas le sien ; ADMIN_PRISON : seulement le personnel de sa prison
   const canManage = (u: AppUser) =>
-    u.id !== user?.id && (!isAdminPrison || isMyPrison(u.prison)) && (!user?.rbac_enforced || (u.role !== null && assignable.has(u.role)));
+    u.id !== user?.id && (!isAdminPrison || isMyPrisonAlways(u.prison)) && u.role !== null && assignable.has(u.role);
 
   const prisonName = useMemo(() => {
     const names = new Map(prisons.map((p: Prison) => [p.id, p.name]));
