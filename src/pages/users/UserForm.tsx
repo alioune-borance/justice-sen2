@@ -50,8 +50,8 @@ export const UserForm: React.FC<UserFormProps> = ({ target, onDone, onCancel }) 
 
   // Rôles proposés : ceux que le backend autorise au compte connecté (GET auth/me/)
   const assignableRoles: Role[] = (user?.assignable_roles ?? []).map((r) => r.value);
-  // L'ADMIN_PRISON crée dans son établissement : le serveur l'impose
-  const prisonImposed = myRole === "ADMIN_PRISON" && !!user?.rbac_enforced;
+  // L'ADMIN_PRISON crée dans son établissement : le serveur l'impose dans tous les modes
+  const prisonImposed = myRole === "ADMIN_PRISON";
 
   const [form, setForm] = useState({
     username: target?.username ?? "",
