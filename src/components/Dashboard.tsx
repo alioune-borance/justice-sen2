@@ -17,6 +17,7 @@ import { useGetDetenus } from '../features/detenus/api/useGetDetenu';
 import { useGetPrisons } from '../features/prisons/api/useGetPrison';
 import { useGetVisites } from '../features/visites/api/useGetVisite';
 import { usePermissions } from '../features/auth/hooks/usePermissions';
+import { useDetenusPresents } from '../features/detenus/hooks/useDetenusPresents';
 import { Detenu, isJudicialStage, isSentenced } from '../features/detenus/types/detenu';
 import { Prison } from '../features/prisons/types/prison';
 import { Visite } from '../features/visites/types/visite';
@@ -152,8 +153,10 @@ const CrimeChart = () => {
 
 export const Dashboard: React.FC = () => {
   const { data: detenus = [], isLoading } = useGetDetenus();
+  // Effectif : détenus présents dans ses prisons (prévenus, accusés, condamnés), jamais libérés ni décédés
+  const { data: presents } = useDetenusPresents();
   const { data: prisons = [] } = useGetPrisons();
-  const { can } = usePermissions();
+  const { can, isMyPrisonAlways } = usePermissions();
   const { data: visites = [] } = useGetVisites({ enabled: can('visits:read') });
 
   const now = new Date();
@@ -174,8 +177,8 @@ export const Dashboard: React.FC = () => {
 
   // Prisonniers en attente de jugement (prévenus et accusés)
   const prevenus: Detenu[] = useMemo(
-    () => detenus.filter((d: Detenu) => isJudicialStage(d)),
-    [detenus]
+    () => presents.filter((d: Detenu) => isJudicialStage(d)),
+    [presents]
   );
 
 
@@ -193,8 +196,8 @@ export const Dashboard: React.FC = () => {
     return prison?.name ?? `Prison #${prisonId}`;
   };
 
-  const totalDetenus = detenus.length;
-  const condamnes = detenus.filter((d: Detenu) => isSentenced(d)).length;
+  const totalDetenus = presents.length;
+  const condamnes = presents.filter((d: Detenu) => isSentenced(d)).length;
   const liberes = detenus.filter((d: Detenu) => d.status === 'LIBERE').length;
   // Libérations ce mois
   // const now = new Date();
@@ -210,10 +213,12 @@ export const Dashboard: React.FC = () => {
     return i.getFullYear() === now.getFullYear() && i.getMonth() === now.getMonth();
   }).length;
 
-  const prison = prisons.filter((p: Prison) => p.name === 'Reubeuss');
-  //let capacity = prison[0]!.capacity;
-  let capacity = 34
-  const tauxOccupation = Math.round((totalDetenus / capacity) * 100);
+  // Capacité : somme des capacités de ses prisons (toutes pour un compte national ; les autres
+  // établissements arrivent sans capacité, en annuaire)
+  const capacity = prisons
+    .filter((p: Prison) => isMyPrisonAlways(p.id))
+    .reduce((sum: number, p: Prison) => sum + (p.capacity ?? 0), 0);
+  const tauxOccupation = capacity > 0 ? Math.round((totalDetenus / capacity) * 100) : 0;
 
   const generateReport = useCallback(() => {
     const doc = new jsPDF();

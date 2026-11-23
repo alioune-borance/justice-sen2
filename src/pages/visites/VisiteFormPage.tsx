@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, CalendarDays, AlertTriangle } from 'lucide-react';
 import { useGetVisiteById, useCreateVisite, useUpdateVisite, useCreateVisitor } from '../../features/visites/api/useGetVisite';
 import { useGetDetenus } from '../../features/detenus/api/useGetDetenu';
+import { useDetenusPresents } from '../../features/detenus/hooks/useDetenusPresents';
 import { Detenu } from '../../features/detenus/types/detenu';
 import { getApiErrorMessages } from '../../shared/api/errorMessages';
 
@@ -14,7 +15,14 @@ export const VisiteFormPage: React.FC = () => {
   const visiteId = id ? parseInt(id) : undefined;
 
   const { data: visite, isLoading: isLoadingVisite } = useGetVisiteById(visiteId || 0);
-  const { data: detenusList = [], isLoading: isLoadingDetenus } = useGetDetenus();
+  // Seuls les détenus présents dans la prison (prévenus, accusés ou condamnés) ; en modification, le détenu
+  // de la visite reste affiché même s'il a quitté la prison depuis (le backend accepte de garder le même)
+  const { data: presents, isLoading: isLoadingDetenus } = useDetenusPresents();
+  const { data: allDetenus = [] } = useGetDetenus();
+  const visitPrisoner = isEditMode ? allDetenus.find((d: Detenu) => d.id === visite?.prisoner) : undefined;
+  const detenusList = visitPrisoner && !presents.some((d: Detenu) => d.id === visitPrisoner.id)
+    ? [visitPrisoner, ...presents]
+    : presents;
 
   const createMutation = useCreateVisite();
   const updateMutation = useUpdateVisite();

@@ -58,7 +58,8 @@ export const IncidentsPage: React.FC = () => {
   const { data: allIncidents = [], isLoading } = useGetIncidents();
   const { data: detenus = [] } = useGetDetenus();
   const addRecord = useAddDisciplinaryRecord();
-  const { can, isMyPrison } = usePermissions();
+  // Incidents cloisonnés par prison même en mode observation (backend rbac_always_enforced)
+  const { can, isMyPrisonAlways: isMyPrison } = usePermissions();
   const decideSanction = useDecideSanction();
 
   // Sanctions proposées en attente de validation, dans le périmètre d'écriture de l'utilisateur
@@ -118,12 +119,14 @@ export const IncidentsPage: React.FC = () => {
 
   const filteredDetenus = useMemo(() => {
     const q = prisonerSearch.toLowerCase();
+    // Seulement les détenus de sa prison : un incident notifie les gestionnaires de la prison du détenu
     return (detenus as Detenu[]).filter(
       (d) =>
-        `${d.first_name} ${d.last_name}`.toLowerCase().includes(q) ||
-        d.matricule_number?.toLowerCase().includes(q)
+        isMyPrison(d.prison) &&
+        (`${d.first_name} ${d.last_name}`.toLowerCase().includes(q) ||
+          d.matricule_number?.toLowerCase().includes(q))
     );
-  }, [detenus, prisonerSearch]);
+  }, [detenus, prisonerSearch, isMyPrison]);
 
   const handleQuickSubmit = async () => {
     if (!selectedType || selectedIds.size === 0) return;
@@ -144,6 +147,8 @@ export const IncidentsPage: React.FC = () => {
         )
       );
       setModalOpen(false);
+    } catch (error) {
+      window.alert(getApiErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
